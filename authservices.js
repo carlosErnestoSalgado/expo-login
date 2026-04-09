@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native'; // <--- ASEGÚRATE DE AGREGAR ESTO
+
 const USER_SESSION_KEY = '@user_session'; // Usuario logueado actualmente
 const REGISTERED_USERS_KEY = '@registered_users'; // Base de datos de usuarios
 
@@ -16,13 +17,15 @@ export const authService = {
     try {
       // 1. Obtener la lista actual de usuarios de la memoria persistente
       const storedUsers = await AsyncStorage.getItem(REGISTERED_USERS_KEY);
-      const users = storedUsers ? JSON.parse(storedUsers) : [];
+      const users = storedUsers ? JSON.parse(storedUsers) : [];  // SI no existe creo un array vvacio en users
 
       // 2. Validar si el correo ya existe
-      const userExists = users.find(u => u.email === email);
+      const userExists = users.find(u => u.email === email);  // esta busqueda devuelve un boolean en dependecia del resultado
       if (userExists) {
-        return { success: false, message: 'El correo ya está registrado' };
+        return { success: false, message: 'El correo ya está registrado' }; // Si ya el correo existe es que el usuario ya se encuentra registrado
       }
+
+      // En caso contrario procedemos a la creacion del nuevo usuario
 
       // 3. Crear el nuevo usuario y agregarlo al array
       const newUser = { 
@@ -32,17 +35,17 @@ export const authService = {
         token: `fake-jwt-${Date.now()}` 
       };
       
-      users.push(newUser);
+      users.push(newUser); // Agregamos el usuario a la lisat users
 
       // 4. Guardar la lista actualizada en AsyncStorage
-      await AsyncStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(users));
+      await AsyncStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(users));  // lo parseamos a stringify para guardarlo de forma local
       
       // 5. Opcional: Loguear al usuario automáticamente tras registrarse
-      await AsyncStorage.setItem(USER_SESSION_KEY, JSON.stringify(newUser));
+      await AsyncStorage.setItem(USER_SESSION_KEY, JSON.stringify(newUser)); // lo loggueamos directamente en lugar de redireccionarlo a la pagina de logging
 
-      return { success: true, user: newUser, message: 'Registro exitoso' };
+      return { success: true, user: newUser, message: 'Registro exitoso' };  // terminando todo lo anterior devuelvo un success
     } catch (error) {
-      return { success: false, message: 'Error en el sistema de registro' };
+      return { success: false, message: 'Error en el sistema de registro' }; //  manejo de errores
     }
   },
 
