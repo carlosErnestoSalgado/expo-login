@@ -1,20 +1,21 @@
 import React, { useState } from 'react';
 import {
   StyleSheet, ScrollView, Pressable, TextInput,
-  Platform, View as RNView, Modal, KeyboardAvoidingView,
-  TouchableWithoutFeedback, Keyboard,
+  Platform, View as RNView, Switch
 } from 'react-native';
 import { useAuthStore } from '@/storage/useAuthStorage';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Text, View } from '@/components/Themed';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Group } from '@/storage/types';
+import { useRoute } from '@react-navigation/native';
 
 // ─── Componentes ────────────────────────────────────────────────────────────────
 import SectionTitle from '@/components/sectiontitle';
 import Card from '@/components/card';
 import GrupoCard from '@/components/GroupCard';
 import ModalWrapper from '@/components/ModalWrapper';
+import { useRouter } from 'expo-router';
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function generarCodigo() {
@@ -29,6 +30,7 @@ export default function TabTwoScreen() {
   const user     = useAuthStore((s) => s.user);
   const groups   = useAuthStore((s) => s.groups);
   const joinGroup  = useAuthStore((s) => s.joinGroup);
+  const addIdGroupToUser = useAuthStore((s) => s.setIdGroupInUser)
 
   // Modales
   const [modalCrear,  setModalCrear]  = useState(false);
@@ -41,6 +43,13 @@ export default function TabTwoScreen() {
   // Form — Unirse
   const [codigo, setCodigo] = useState('');
   const [errorCodigo, setErrorCodigo] = useState('');
+
+  // Grupo de ahorros
+  const [moneySaveGroup, setMoneySaveGroup] = useState(false);
+  const [gastosComunes, setGastosComunes]  = useState(0);
+
+  // Router para ir a otra pagina
+  const router = useRouter()
 
   // ── Crear grupo ────────────────────────────────────────────────────────────
   const handleCrear = () => {
@@ -62,9 +71,11 @@ export default function TabTwoScreen() {
     };
 
     joinGroup(nuevoGrupo);
+    addIdGroupToUser(nuevoGrupo.id)
     setNombreGrupo('');
     setDescGrupo('');
     setModalCrear(false);
+    
   };
 
   // ── Unirse a grupo ─────────────────────────────────────────────────────────
@@ -149,7 +160,7 @@ export default function TabTwoScreen() {
             </RNView>
           </Card>
         ) : (
-          groups.map((g) => <GrupoCard key={g.id} grupo={g} />)
+          groups.map((g) =>    <GrupoCard key={g.id} grupo={g} />)
         )}
       </ScrollView>
 
@@ -169,7 +180,34 @@ export default function TabTwoScreen() {
           value={nombreGrupo}
           onChangeText={setNombreGrupo}
         />
-
+        <View style={{flexDirection: "row", alignItems: "center",justifyContent: "space-between", gap: 6}}>
+          <Text style={styles.labelBold} lightColor='#555' darkColor='#aaa'>
+            Grupod de Ahorros
+          </Text>
+          <Switch 
+          value={moneySaveGroup}
+          onValueChange={() => setMoneySaveGroup(!moneySaveGroup)}
+          trackColor={{ false: '#767577', true: '#34C759' }}
+          thumbColor="white" 
+          />
+        
+        </View>
+        {
+          moneySaveGroup ?
+          <>
+          <Text style={styles.modalLabel} lightColor="#555" darkColor="#AAA">
+          Destinado a gastos comunes *
+          </Text>
+          <TextInput
+          style={inputStyle}
+          placeholder="80000"
+          placeholderTextColor={isDark ? '#555' : '#AAA'}
+          value={gastosComunes.toString()}
+          onChangeText={(text) => setGastosComunes(Number(text))}
+          />
+          </>
+          : null
+        }
         <Text style={styles.modalLabel} lightColor="#555" darkColor="#AAA">
           Descripción (opcional)
         </Text>
@@ -244,6 +282,10 @@ export default function TabTwoScreen() {
 // ─── Estilos ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  labelBold: {
+    fontWeight: '700',
+    fontSize: 15,
+  },
   scroll: {
     padding: 20,
     paddingBottom: 48,

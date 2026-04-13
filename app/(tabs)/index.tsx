@@ -11,49 +11,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 
+// Componentes
+import Card from '@/components/card';
+import SectionTitle from '@/components/sectiontitle';
+import StatRow from '@/components/statrow';
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const fmt = (n: number) => '$' + Math.round(n).toLocaleString('es-CL');
 const pct = (current: number, goal: number) =>
   goal > 0 ? Math.min(100, Math.round((current / goal) * 100)) : 0;
 
-// ─── Sub-componentes ──────────────────────────────────────────────────────────
-
-function Card({ children, style }: { children: React.ReactNode; style?: object }) {
-  const isDark = useColorScheme() === 'dark';
-  return (
-    <View
-      style={[styles.card, { backgroundColor: isDark ? '#1E1E1E' : '#FFFFFF' }, style]}
-      lightColor="#FFFFFF"
-      darkColor="#1E1E1E"
-    >
-      {children}
-    </View>
-  );
-}
-
-function SectionTitle({ text }: { text: string }) {
-  return (
-    <Text style={styles.sectionTitle} lightColor="#888" darkColor="#666">
-      {text.toUpperCase()}
-    </Text>
-  );
-}
-
-function StatRow({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
-  return (
-    <RNView style={styles.statRow}>
-      <Text style={styles.statLabel} lightColor="#555" darkColor="#AAA">{label}</Text>
-      <Text
-        style={[styles.statValue, valueColor ? { color: valueColor } : undefined]}
-        lightColor="#1A1A1A"
-        darkColor="#FFF"
-      >
-        {value}
-      </Text>
-    </RNView>
-  );
-}
 
 function ProgressBar({ percent }: { percent: number }) {
   const color = percent >= 100 ? '#34C759' : percent >= 50 ? '#007AFF' : '#FF9500';
@@ -84,7 +52,8 @@ export default function ProfileScreen() {
   const progreso     = pct(saldo, meta);
   const saldoColor   = saldo >= 0 ? '#34C759' : '#FF3B30';
 
-  const users_groups = groups.find(g => g.miembros.some(u => u.userId === user?.id));
+  const users_groups = groups.filter(g => g.members.some(u => u === user?.id));
+  console.log(users_groups)
 
   const iniciales = user?.name
     ?.split(' ')
@@ -123,11 +92,7 @@ export default function ProfileScreen() {
         <Text style={styles.userEmail} lightColor="#888" darkColor="#666">
           {user?.email ?? ''}
         </Text>
-        {users_groups && (
-          <RNView style={styles.groupBadge}>
-            <Text style={styles.groupBadgeText}>🏠 {users_groups.nombre}</Text>
-          </RNView>
-        )}
+        
       </RNView>
 
       {/* ── Finanzas del mes ──────────────────────────────────────────── */}
@@ -162,6 +127,22 @@ export default function ProfileScreen() {
           </Card>
         </>
       )}
+
+      {/* Grupos a los que pertenece */ }
+      <SectionTitle text="Grupos a los que pertenece" />
+      <Card>
+        <RNView style={styles.containerGroups}>
+          {users_groups.map((g, index) => (
+            <RNView key={index}>
+              <Text>{g.nombre}</Text>
+              <RNView style={styles.groupBadge}>
+                <Text style={styles.groupBadgeText}>🏠 {g.descripcion}</Text>
+              </RNView>
+            </RNView>
+          ))}
+        </RNView>
+      </Card>
+
 
       {/* ── Acciones ──────────────────────────────────────────────────── */}
       <SectionTitle text="Acciones" />
@@ -253,4 +234,5 @@ const styles = StyleSheet.create({
 
   logoutBtn:      { alignItems: 'center', paddingVertical: 12, marginTop: 4 },
   logoutText:     { color: '#FF3B30', fontSize: 15, fontWeight: '600' },
+  containerGroups: {flexDirection: "column", gap: 4, justifyContent: "space-between"}
 });

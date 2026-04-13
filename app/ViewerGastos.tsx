@@ -4,6 +4,7 @@ import { View, Text } from '../components/Themed';
 import { useAuthStore } from '@/storage/useAuthStorage';
 import { GastoPersonal } from '@/storage/types';
 import ModalGastoPersonal from '@/components/ModalPersonal';
+import { useColorScheme } from 'react-native';
 
 export default function ViewerGastos() {
   // Leer directo del store — ya está sincronizado con AsyncStorage via persist
@@ -13,6 +14,10 @@ export default function ViewerGastos() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedGastoId, setSelectedGastoId] = useState<string | null>(null);
 
+
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+   
    const handleEliminar = (id: string) => {
     // ✅ Llama directo a la acción del store, sin hooks dentro de funciones
     console.log("Eliminado gasto")
@@ -27,9 +32,16 @@ export default function ViewerGastos() {
           <Text style={styles.empty}>No hay gastos registrados.</Text>
         ) : (
           gastosPersonales.map((gasto: GastoPersonal) => (
-            <View key={gasto.id} style={styles.card}>
-              <Text style={styles.desc}>{gasto.descripcion}</Text>
-              <Text style={styles.categoria}>{gasto.categoria}</Text>
+ 
+
+            <View key={gasto.id}  style={[
+              styles.card, 
+              { backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF' }
+            ]}>
+              <View style={[{flexDirection: "column", gap: 4, backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF' }]}>
+                <Text style={styles.desc}>{gasto.descripcion}</Text>
+                <Text style={styles.categoria}>{gasto.categoria}</Text>
+              </View>
               <Text style={styles.monto}>${gasto.monto.toLocaleString('es-CL')}</Text>
               <View style={styles.container_button} lightColor='transparent' darkColor='transparent'>
                       <Pressable onPress={() => {

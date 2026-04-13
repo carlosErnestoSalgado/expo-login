@@ -81,6 +81,7 @@ interface AuthState {
   // ── Acciones de Grupos ──
   setGroups: (groups: Group[]) => void;
   joinGroup: (group: Group) => void;
+  setIdGroupInUser: (id: string) => void;
 
   // ── Acciones de Miembros del grupo ──
   updateSalario: (grupoId: string, userId: string, salario: number) => void;
@@ -112,6 +113,8 @@ interface AuthState {
   getMesActivo: (grupoId: string) => FinanzasMes | null;
   getGastosComunesPorCategoria: (grupoId: string, mesId: string) => Record<string, number>;
   getGastosPersonalesPorCategoria: (grupoId: string, mesId: string, persona: 'p1' | 'p2') => Record<string, number>;
+  getGroupById: (grupoId: string) => Group | null;
+
   
 }
 
@@ -172,6 +175,14 @@ export const useAuthStore = create<AuthState>()(
     groups: [...state.groups, group],
   })),
 
+  setIdGroupInUser: (id) => set((state) => ({
+    user: state.user ? 
+    {
+      ...state.user, 
+      groupsIds: [...state.user.groupIds, id]
+
+    }: null
+  })),
   // ── Miembros ──
   updateSalario: (grupoId, userId, salario) => set((state) => ({
     groups: state.groups.map(g =>
@@ -330,6 +341,16 @@ export const useAuthStore = create<AuthState>()(
       return acc;
     }, {});
   },
+
+ getGroupById: (grupoId: string | number) => {
+  const group = get().groups.find(g => g.id === grupoId);
+
+  if (group) {
+    return group;
+  }
+  return null;
+},
+
 
 }),  {
       name: 'auth-storage',        // clave en AsyncStorage

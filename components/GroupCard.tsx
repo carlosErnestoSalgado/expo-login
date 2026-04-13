@@ -9,6 +9,7 @@ import { Text } from './Themed';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Group } from '@/storage/types';
 import { useAuthStore } from '@/storage/useAuthStorage';
+import { useRouter } from 'expo-router';
 
 
 
@@ -18,9 +19,12 @@ export default function GrupoCard({ grupo }: { grupo: Group }) {
   const isDark = useColorScheme() === 'dark';
   const user   = useAuthStore((s) => s.user);
   const esAdmin = grupo.adminId === user?.id;
+  const router = useRouter();
+
 
   return (
     <Card style={{ marginBottom: 12 }}>
+      <Pressable onPress={()=> router.push({pathname: "/ViewerGroup", params: {idGroup: grupo.id}})}>
       <RNView style={styles.grupoHeader}>
         {/* Avatar del grupo */}
         <RNView style={styles.grupoAvatar}>
@@ -45,6 +49,7 @@ export default function GrupoCard({ grupo }: { grupo: Group }) {
           </Text>
         </RNView>
       </RNView>
+      </Pressable>
 
       <RNView style={styles.divider} />
 
