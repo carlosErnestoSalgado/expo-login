@@ -16,6 +16,9 @@ import Card from '@/components/card';
 import GrupoCard from '@/components/GroupCard';
 import ModalWrapper from '@/components/ModalWrapper';
 import { useRouter } from 'expo-router';
+
+import ModalCreateEditGroup from '@/components/ModalCreateEditGroup';
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function generarCodigo() {
@@ -44,39 +47,7 @@ export default function TabTwoScreen() {
   const [codigo, setCodigo] = useState('');
   const [errorCodigo, setErrorCodigo] = useState('');
 
-  // Grupo de ahorros
-  const [moneySaveGroup, setMoneySaveGroup] = useState(false);
-  const [gastosComunes, setGastosComunes]  = useState(0);
 
-  // Router para ir a otra pagina
-  const router = useRouter()
-
-  // ── Crear grupo ────────────────────────────────────────────────────────────
-  const handleCrear = () => {
-    if (!nombreGrupo.trim()) return;
-
-    const nuevoGrupo: Group = {
-      id:           Math.random().toString(36).substring(2),
-      nombre:       nombreGrupo.trim(),
-      descripcion:  descGrupo.trim(),
-      foto:         '',
-      codigoUnirse: generarCodigo(),
-      adminId:      user?.id ?? '',
-      members:      [user?.id ?? ''],
-      miembros:     user
-        ? [{ userId: user.id, nombre: user.name, salario: 0, metaAhorroIndividual: 0 }]
-        : [],
-      ahorroComun:    null,
-      historialMeses: [],
-    };
-
-    joinGroup(nuevoGrupo);
-    addIdGroupToUser(nuevoGrupo.id)
-    setNombreGrupo('');
-    setDescGrupo('');
-    setModalCrear(false);
-    
-  };
 
   // ── Unirse a grupo ─────────────────────────────────────────────────────────
   const handleUnirse = () => {
@@ -165,76 +136,7 @@ export default function TabTwoScreen() {
       </ScrollView>
 
       {/* ── Modal: Crear grupo ───────────────────────────────────────────── */}
-      <ModalWrapper visible={modalCrear} onClose={() => setModalCrear(false)}>
-        <Text style={styles.modalTitle} lightColor="#1A1A1A" darkColor="#FFF">
-          Crear grupo
-        </Text>
-
-        <Text style={styles.modalLabel} lightColor="#555" darkColor="#AAA">
-          Nombre del grupo *
-        </Text>
-        <TextInput
-          style={inputStyle}
-          placeholder="Ej: Hogar Pérez"
-          placeholderTextColor={isDark ? '#555' : '#AAA'}
-          value={nombreGrupo}
-          onChangeText={setNombreGrupo}
-        />
-        <View style={{flexDirection: "row", alignItems: "center",justifyContent: "space-between", gap: 6}}>
-          <Text style={styles.labelBold} lightColor='#555' darkColor='#aaa'>
-            Grupod de Ahorros
-          </Text>
-          <Switch 
-          value={moneySaveGroup}
-          onValueChange={() => setMoneySaveGroup(!moneySaveGroup)}
-          trackColor={{ false: '#767577', true: '#34C759' }}
-          thumbColor="white" 
-          />
-        
-        </View>
-        {
-          moneySaveGroup ?
-          <>
-          <Text style={styles.modalLabel} lightColor="#555" darkColor="#AAA">
-          Destinado a gastos comunes *
-          </Text>
-          <TextInput
-          style={inputStyle}
-          placeholder="80000"
-          placeholderTextColor={isDark ? '#555' : '#AAA'}
-          value={gastosComunes.toString()}
-          onChangeText={(text) => setGastosComunes(Number(text))}
-          />
-          </>
-          : null
-        }
-        <Text style={styles.modalLabel} lightColor="#555" darkColor="#AAA">
-          Descripción (opcional)
-        </Text>
-        <TextInput
-          style={inputStyle}
-          placeholder="Ej: Gastos del departamento"
-          placeholderTextColor={isDark ? '#555' : '#AAA'}
-          value={descGrupo}
-          onChangeText={setDescGrupo}
-        />
-
-        <RNView style={styles.modalBtns}>
-          <Pressable
-            style={[styles.modalBtn, styles.modalBtnCancel]}
-            onPress={() => setModalCrear(false)}
-          >
-            <Text style={{ color: '#888', fontWeight: '600' }}>Cancelar</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.modalBtn, styles.modalBtnConfirm, !nombreGrupo.trim() && { opacity: 0.4 }]}
-            onPress={handleCrear}
-            disabled={!nombreGrupo.trim()}
-          >
-            <Text style={{ color: '#FFF', fontWeight: '700' }}>Crear</Text>
-          </Pressable>
-        </RNView>
-      </ModalWrapper>
+      <ModalCreateEditGroup modalCrear={modalCrear} setModalCrear={setModalCrear}/>
 
       {/* ── Modal: Unirse a grupo ────────────────────────────────────────── */}
       <ModalWrapper visible={modalUnirse} onClose={() => setModalUnirse(false)}>

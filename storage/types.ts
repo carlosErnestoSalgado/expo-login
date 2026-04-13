@@ -112,7 +112,10 @@ export interface Group {
   codigoUnirse: string;  // Código único, ej: "A7B8C9"
   adminId: string;       // ID del creador
   members: string[];     // IDs de los miembros
-
+  esGastos: boolean;
+  gastosComunes: Number, 
+  esAhorro: boolean,
+  metaGuardar: Number,
   // Configuración financiera del grupo (lo que define el Excel)
   miembros: MiembroGrupo[];             // Info financiera de cada persona
   ahorroComun: AhorroComun | null;      // Meta de ahorro compartida

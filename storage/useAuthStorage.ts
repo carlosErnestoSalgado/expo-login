@@ -113,7 +113,10 @@ interface AuthState {
   getMesActivo: (grupoId: string) => FinanzasMes | null;
   getGastosComunesPorCategoria: (grupoId: string, mesId: string) => Record<string, number>;
   getGastosPersonalesPorCategoria: (grupoId: string, mesId: string, persona: 'p1' | 'p2') => Record<string, number>;
+  
+  // Acciones para grupos
   getGroupById: (grupoId: string) => Group | null;
+  deleteGroupById: (groupId:string) => void;
 
   
 }
@@ -343,13 +346,16 @@ export const useAuthStore = create<AuthState>()(
   },
 
  getGroupById: (grupoId: string | number) => {
-  const group = get().groups.find(g => g.id === grupoId);
+  const group = get().groups.find(g => String(g.id) === String(grupoId));
 
   if (group) {
     return group;
   }
   return null;
 },
+deleteGroupById: (groupId: string) => set((state) => ({
+  groups: state.groups.filter(g => g.id !== groupId)
+}))
 
 
 }),  {

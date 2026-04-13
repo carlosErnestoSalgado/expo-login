@@ -1,31 +1,47 @@
 import { Text } from "@/components/Themed";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet } from "react-native";
 import { useColorScheme, Platform, View as RNView, Image } from "react-native";
 import { useAuthStore } from "@/storage/useAuthStorage";
 import { FontAwesome } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+
+import { useLocalSearchParams } from 'expo-router';
 
 // Components
 import Card from "@/components/card";
 import StatRow from "@/components/statrow";
 import SectionTitle from "@/components/sectiontitle";
 
-interface typesViewerGroup {
-    idGroup:string
-}
+// Modals
+import ModalCreateEditGroup from "@/components/ModalCreateEditGroup";
 
 
-export default function ViewerGroup({idGroup}:typesViewerGroup){
+
+
+export default function ViewerGroup(){
+    const { idGroup } = useLocalSearchParams<{ idGroup: string }>();
+
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
+
+
+    // Router para ir atras al elimianr el grupo
+    const router = useRouter();
+
+    // Para eliminar grupo
+    const deleteGroup = useAuthStore((s) => s.deleteGroupById)
+
+    // Driver Modal
+    const [modalEditGroup, setModalEditGroup] = useState(false);
     
     // Group by Id
     const getGroupById = useAuthStore((s) => s.getGroupById);   
     const group = getGroupById(idGroup);
     console.log("-----------------------------------------------------------------")
-    console.log(group)
-    console.log("-----------------------------------------------------------------")
+    
     console.log("Id del GRupo", idGroup)
+    console.log("-----------------------------------------------------------------")
 
     const iniciales = group?.nombre
     ?.split(' ')
@@ -34,7 +50,7 @@ export default function ViewerGroup({idGroup}:typesViewerGroup){
     .join('')
     .toUpperCase() ?? '?';
     
-    console.log(idGroup)
+    
     return(
      <ScrollView
           style={{ flex: 1, backgroundColor: isDark ? '#121212' : '#F5F7FA' }}
@@ -68,7 +84,10 @@ export default function ViewerGroup({idGroup}:typesViewerGroup){
             <SectionTitle text="Acciones sobre el grupo" />
 
             <Pressable
-            onPress={() => console.log("Edit Group")}
+            onPress={() => {
+                console.log("Edit Group");
+                setModalEditGroup(true)
+            }}
             style={({ pressed }) => [styles.ctaBtnEdit, pressed && styles.ctaPressed]}
             >
                 <FontAwesome name="pencil" size={16} color="#FFF" />
@@ -76,13 +95,39 @@ export default function ViewerGroup({idGroup}:typesViewerGroup){
             </Pressable>
             <Pressable
             style={({ pressed }) => [styles.deleteBtn, pressed && { transform: [{ scale: 1.20 }], opacity: 0.85  }]}
-            onPress={() => console.log("Delete group")}
+            onPress={() => {
+                Alert.alert(
+                    "Eliminar grupo",
+                    "¿Estás seguro que deseas eliminar este grupo?",
+                    [
+                        {
+                        text: "Cancelar",
+                        style: "cancel"
+                        },
+                        {
+                        text: "Eliminar",
+                        style: "destructive",  // rojo en iOS
+                        onPress: () => {
+                            deleteGroup(idGroup);
+                            router.back();  // volver atrás después de eliminar
+                        }
+                        }
+                    ]
+                    )
+                }
+            }
             >
             <FontAwesome name="trash" size={12} color="red" />
             <Text style={styles.deleteText} lightColor="#8E8E93" darkColor="#555">
                 Eliminar grupo
             </Text>
+           
             </Pressable>
+             {
+                group ?
+                <ModalCreateEditGroup modalCrear={modalEditGroup} setModalCrear={(modalEditGroup) => setModalEditGroup(modalEditGroup)} idGroup={idGroup} group={group}/>
+                : null
+            }
     </ScrollView>)
 }
 
