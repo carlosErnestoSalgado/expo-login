@@ -104,6 +104,7 @@ useEffect(() => {
       });
       showMessage({ message: '¡Gasto actualizado!', type: 'success', backgroundColor: '#34C759' });
     } else {
+      console.log("Gastooo")
       // ✅ Modo nuevo
       const nuevoGasto: GastoPersonal = {
         id:          `gp-${Date.now()}`,

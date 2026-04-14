@@ -33,20 +33,18 @@ export default function TabTwoScreen() {
   const user     = useAuthStore((s) => s.user);
   const groups   = useAuthStore((s) => s.groups);
   const joinGroup  = useAuthStore((s) => s.joinGroup);
-  const addIdGroupToUser = useAuthStore((s) => s.setIdGroupInUser)
 
   // Modales
   const [modalCrear,  setModalCrear]  = useState(false);
   const [modalUnirse, setModalUnirse] = useState(false);
 
-  // Form — Crear grupo
-  const [nombreGrupo, setNombreGrupo] = useState('');
-  const [descGrupo,   setDescGrupo]   = useState('');
-
   // Form — Unirse
   const [codigo, setCodigo] = useState('');
   const [errorCodigo, setErrorCodigo] = useState('');
 
+  // Filtrar grupos del usuario
+  const getGroup = useAuthStore((s) => s.getGroupByUser);
+  const groups_user = getGroup();
 
 
   // ── Unirse a grupo ─────────────────────────────────────────────────────────
@@ -112,9 +110,9 @@ export default function TabTwoScreen() {
         </RNView>
 
         {/* ── Lista de grupos ──────────────────────────────────────────── */}
-        <SectionTitle text={`Mis grupos (${groups.length})`} />
+        <SectionTitle text={`Mis grupos (${groups_user.length})`} />
 
-        {groups.length === 0 ? (
+        {groups_user.length === 0 ? (
           <Card>
             <RNView style={styles.emptyState}>
               <FontAwesome
@@ -131,7 +129,7 @@ export default function TabTwoScreen() {
             </RNView>
           </Card>
         ) : (
-          groups.map((g) =>    <GrupoCard key={g.id} grupo={g} />)
+          groups_user.map((g) =>    <GrupoCard key={g.id} grupo={g} />)
         )}
       </ScrollView>
 

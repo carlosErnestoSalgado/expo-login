@@ -9,6 +9,7 @@ import {
 import { Platform } from 'react-native';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { authService } from './authservices';
 
 
 // ─── HELPERS ───────────────────────────────────────────────────────────────────
@@ -117,7 +118,10 @@ interface AuthState {
   // Acciones para grupos
   getGroupById: (grupoId: string) => Group | null;
   deleteGroupById: (groupId:string) => void;
+  getGroupByUser: () => Group[];
 
+  // Obtener miembros de un grupo
+  getUsersFromGroup: (groupId: string) => Promise<User[]>; 
   
 }
 
@@ -151,7 +155,7 @@ export const useAuthStore = create<AuthState>()(
   mesActivoId: null,
 
   // ── Auth ──
-  setUser: (user) => set({ user, isLogged: !!user, userName: user?.name ?? '' }),
+  setUser: (user) => set({user: user}),
   setIsLogged: (status) => set({ isLogged: status }),
   logout: () => set({ user: null, isLogged: false, groups: [], mesActivoId: null }),
 
@@ -353,6 +357,19 @@ export const useAuthStore = create<AuthState>()(
   }
   return null;
 },
+
+  getGroupByUser: () => {
+    const userId = get().user?.id
+  return get().groups.filter(g => 
+    g.members.some(m => m === userId)
+  );
+},
+
+  getUsersFromGroup: async (groupId: string) => {
+    const stored = await AsyncStorage.getItem('@registered_users');
+    const users = JSON.parse(stored ?? '[]');
+    return users.filter((u: any) => u.groupIds.includes(groupId));
+  },
 deleteGroupById: (groupId: string) => set((state) => ({
   groups: state.groups.filter(g => g.id !== groupId)
 }))

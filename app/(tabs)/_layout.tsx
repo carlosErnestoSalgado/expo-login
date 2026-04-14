@@ -30,7 +30,7 @@ export default function TabLayout() {
         headerShown: useClientOnlyValue(false, true),
       }}>
       <Tabs.Screen
-        name="index"
+        name="PersonalPage"
         options={{
           title: 'Gastos Personales',
           tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
@@ -40,7 +40,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="two"
+        name="GroupsPage"
         options={{
           title: 'Grupos y Ahorros',
           tabBarIcon: ({ color }) => <TabBarIcon name="users" color={color} />,

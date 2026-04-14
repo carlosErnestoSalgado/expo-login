@@ -1,11 +1,12 @@
 import { use, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Pressable } from 'react-native';
+import { ScrollView, StyleSheet, Pressable, View as RNView} from 'react-native';
 import { View, Text } from '../components/Themed';
 import { useAuthStore } from '@/storage/useAuthStorage';
 import { GastoPersonal } from '@/storage/types';
 import ModalGastoPersonal from '@/components/ModalPersonal';
 import { useColorScheme } from 'react-native';
 import Card from '@/components/card';
+import { FontAwesome } from '@expo/vector-icons';
 
 export default function ViewerGastos() {
   // Leer directo del store — ya está sincronizado con AsyncStorage via persist
@@ -14,7 +15,10 @@ export default function ViewerGastos() {
   
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedGastoId, setSelectedGastoId] = useState<string | null>(null);
-
+  
+  // Visibilidad de botones editar y eliminar
+  const [visible, setVisible] = useState(false);
+  const [visibleId, setVisibleId] = useState<string | null>(null);
 
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -25,15 +29,37 @@ export default function ViewerGastos() {
     deleteGasto(id);
   };
   return (
-    <ScrollView>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: isDark ? '#121212' : '#F5F7FA' }}
+        showsVerticalScrollIndicator={false}
+      >
       <View style={styles.container}>
         <Text style={styles.titulo}>Mis Gastos</Text>
 
         {gastosPersonales.length === 0 ? (
-          <Text style={styles.empty}>No hay gastos registrados.</Text>
+           <Card>
+            <RNView style={styles.emptyState}>
+              <FontAwesome
+                name="money"
+                size={40}
+                color={isDark ? '#3A3A3C' : '#DDD'}
+              />
+              <Text style={styles.emptyTitle} lightColor="#AAA" darkColor="#555">
+                Aún no tienes gastos
+              </Text>
+              <Text style={styles.emptySubtitle} lightColor="#BBB" darkColor="#444">
+                Puedes ingresar un gasto desde la pantalla Personal
+              </Text>
+            </RNView>
+            </Card>
         ) : (
           gastosPersonales.map((gasto: GastoPersonal) => (
  
+          <Pressable onPress={()=> {
+             setVisibleId(visibleId === gasto.id ? null : gasto.id) // toggle
+          }}>
+
+
 
             // Card — agrega flexShrink para que respete el ancho del ScrollView
           <Card>
@@ -80,10 +106,10 @@ export default function ViewerGastos() {
                       </Text>
                 </View>
          
-          
+          <RNView style={styles.divider} />
           {/* Botones — flexShrink:0 para que no se compriman */}
           <View 
-            style={[styles.container_button, { flexShrink: 0 }]} 
+            style={[styles.container_button, { flexShrink: 0 }, { display: visibleId === gasto.id ? 'flex' : 'none' }]} 
             lightColor='transparent' 
             darkColor='transparent'
           >
@@ -98,7 +124,8 @@ export default function ViewerGastos() {
             </Pressable>
           </View>
           </View>
-</Card> 
+          </Card> 
+          </Pressable>
 
           ))
         )}
@@ -150,4 +177,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#ff9900',
   },
+  divider: { height: 1, backgroundColor: '#F0F0F0', marginBottom: 12 },
+  
+  // Empty state
+  emptyState: { alignItems: 'center', paddingVertical: 28, gap: 10 },
+  emptyTitle: { fontSize: 16, fontWeight: '700' },
+  emptySubtitle: { fontSize: 13, textAlign: 'center' },
+
 });

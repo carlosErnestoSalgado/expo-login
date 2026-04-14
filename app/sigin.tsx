@@ -9,7 +9,6 @@ import { useColorScheme } from '@/components/useColorScheme';
 
 
 
-
 export default function App() {
   
   
@@ -22,8 +21,10 @@ export default function App() {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [user, setUser] = useState<{ email: any; token: string; name: string } | null>(null);
+  //const [user, setUser] = useState<{ email: any; token: string; name: string } | null>(null);
+  const setUser = useAuthStore((s) => s.setUser)
   const [isRegistered, setIsRegistered] = useState(false);
+  
   
   
   //Zuzstand store para manejar el estado de autenticación
@@ -113,6 +114,7 @@ const handleLogin = async () => {
               pressed && styles.buttonPressed
             ]} 
             onPress={handleLogin}
+            
           >
             {/* El texto del botón suele ser siempre blanco, 
                 pero puedes usar lightColor si quieres que cambie */}

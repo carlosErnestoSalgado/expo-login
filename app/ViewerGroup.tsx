@@ -1,11 +1,11 @@
 import { Text } from "@/components/Themed";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet } from "react-native";
 import { useColorScheme, Platform, View as RNView, Image } from "react-native";
 import { useAuthStore } from "@/storage/useAuthStorage";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-
+import { User } from "@/storage/types";
 import { useLocalSearchParams } from 'expo-router';
 
 // Components
@@ -25,6 +25,17 @@ export default function ViewerGroup(){
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
 
+    const getMembers = useAuthStore((s) => s.getUsersFromGroup)
+    const [members, setMembers] = useState<User[]>([])
+
+    useEffect(() => {
+    const fetchMembers = async () => {
+        const result = await getMembers(idGroup);
+        setMembers(result);
+        console.log(members)
+    };
+    fetchMembers();
+    }, [idGroup]);
 
     // Router para ir atras al elimianr el grupo
     const router = useRouter();
@@ -78,6 +89,13 @@ export default function ViewerGroup(){
             <StatRow label="Total gastado"     value={"fmt(totalGastado)"} valueColor="#FF9500" />
             <RNView style={styles.divider} />
             <StatRow label="Saldo restante"    value={"fmt(saldo)"}        valueColor={"#007AFF"} />
+            <RNView style={styles.divider} />
+            <RNView>
+            <Text>Miembros del grupo:</Text>
+            {members.map((u) => (
+                <Text key={u.id}>{u.name}</Text>
+            ))}
+            </RNView>
             </Card>
 
              {/* ── Acciones  ──────────────────────────────────────────── */}

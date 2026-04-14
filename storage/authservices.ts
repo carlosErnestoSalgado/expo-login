@@ -60,7 +60,7 @@ export const authService = {
       const storedUsers = await AsyncStorage.getItem(REGISTERED_USERS_KEY);
       const users = storedUsers ? JSON.parse(storedUsers) : [];
 
-      const user = users.find((u: any) => u.email === email && u.password === password);
+      const user = users.find((u:any) => u.email === email && u.password === password);
 
       if (user) {
         await AsyncStorage.setItem(USER_SESSION_KEY, JSON.stringify(user));

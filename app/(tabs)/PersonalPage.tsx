@@ -39,7 +39,7 @@ export default function ProfileScreen() {
   const router  = useRouter();
 
   const user    = useAuthStore((s) => s.user);
-  const groups  = useAuthStore((s) => s.groups);
+  
   const logout  = useAuthStore((s) => s.logout);
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -52,8 +52,8 @@ export default function ProfileScreen() {
   const progreso     = pct(saldo, meta);
   const saldoColor   = saldo >= 0 ? '#34C759' : '#FF3B30';
 
-  const users_groups = groups.filter(g => g.members.some(u => u === user?.id));
-  console.log(users_groups)
+  const getGroup = useAuthStore((s) => s.getGroupByUser)
+  const groups   = getGroup()
 
   const iniciales = user?.name
     ?.split(' ')
@@ -61,14 +61,25 @@ export default function ProfileScreen() {
     .slice(0, 2)
     .join('')
     .toUpperCase() ?? '?';
+    // Botón temporal de reset
+    const handleReset = async () => {
+      await AsyncStorage.clear();
+      logout();
+      console.log('✅ Storage limpiado');
+    };
 
   const handleDebug = async () => {
+    const users = await AsyncStorage.getItem('@registered_users');
+    const sessionInit = await AsyncStorage.getItem('@user_session');
+    const auth = await AsyncStorage.getItem('auth-storage');
     const session = await AsyncStorage.getItem('auth-storage');
-    console.clear();
-    console.log('--- USER ---',        user);
-    console.log('--- GROUPS ---',      groups);
-    console.log('--- USER GROUP ---',  users_groups);
-    console.log('--- SESSION ---',     session);
+  
+
+    console.log('👥 Usuarios registrados:', JSON.parse(users ?? '[]'));
+    console.log('🔐 Sesión iniciada actual:', JSON.parse(sessionInit ?? '{}'));
+    console.log('🏪 Auth store:', JSON.parse(auth ?? '{}'));
+    console.log("AuthStore", session)
+
   };
 
   return (
@@ -132,7 +143,7 @@ export default function ProfileScreen() {
       <SectionTitle text="Grupos a los que pertenece" />
       <Card>
         <RNView style={styles.containerGroups}>
-          {users_groups.map((g, index) => (
+          {groups.map((g, index) => (
             <RNView key={index}>
               <Text>{g.nombre}</Text>
               <RNView style={styles.groupBadge}>
@@ -171,6 +182,16 @@ export default function ProfileScreen() {
         <FontAwesome name="bug" size={12} color="#8E8E93" />
         <Text style={styles.debugText} lightColor="#8E8E93" darkColor="#555">
           Mostrar info en consola
+        </Text>
+      </Pressable>
+      {/* ── Reset ─────────────────────────────────────────────────────── */}
+      <Pressable
+        style={({ pressed }) => [styles.debugBtn, pressed && { opacity: 0.5 }]}
+        onPress={handleReset}
+      >
+        <FontAwesome name="eye" size={12} color="#8E8E93" />
+        <Text style={styles.debugText} lightColor="#8E8E93" darkColor="#555">
+          Reset Register Users
         </Text>
       </Pressable>
 

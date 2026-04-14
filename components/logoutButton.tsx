@@ -15,23 +15,21 @@ function TabBarIcon(props: {
 
 export default function LogoutButton() {
   const setIsLogged = useAuthStore((state) => state.setIsLogged);
-  const userName = useAuthStore((state) => state.userName);
-  //const logoutGlobal = useAuthStore((state) => state.logout);
   const colorScheme = useColorScheme();
-  
+
   return (
     <View style={styles.container}>
-      
       <Pressable
         onPress={async () => {
           await authService.logout();
           setIsLogged(false);
-          //logoutGlobal();
-          
         }}
+        style={({ pressed }) => pressed && styles.pressed}
       >
-        <Text style={styles.userName}><TabBarIcon name="sign-out" color={colorScheme === 'dark' ? '#FFF' : '#000'} /></Text>
-        
+        <TabBarIcon
+          name="sign-out"
+          color={colorScheme === 'dark' ? '#FFF' : '#000'}
+        />
       </Pressable>
     </View>
   );
