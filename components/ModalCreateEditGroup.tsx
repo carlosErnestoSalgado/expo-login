@@ -107,7 +107,7 @@ export default function ModalCreateEditGroup ({modalCrear, setModalCrear, idGrou
                value={nombreGrupo}
                onChangeText={setNombreGrupo}
              />
-             <View style={{flexDirection: "row", alignItems: "center",justifyContent: "space-between", gap: 6}}>
+             <View style={{flexDirection: "row", alignItems: "center",justifyContent: "space-between", gap: 6}} darkColor="transparent">
                <Text style={styles.labelBold} lightColor='#555' darkColor='#aaa'>
                  Grupod de Ahorros
                </Text>
@@ -137,7 +137,7 @@ export default function ModalCreateEditGroup ({modalCrear, setModalCrear, idGrou
                : null
              }
             
-              <View style={{flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6}}>
+              <View style={{flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6}} darkColor="transparent">
                 <Text style={styles.labelBold} lightColor='#555' darkColor='#aaa'>
                   Decididos a ahorrar
                 </Text>
@@ -191,6 +191,8 @@ export default function ModalCreateEditGroup ({modalCrear, setModalCrear, idGrou
                   setNombreGrupo("");
                   setMoneySaveGroup(false);
                   setGastosComunes(0);
+                  setMeta(0);
+                  SetAlcancia(false);
                   if(group){
                     setNombreGrupo(group.nombre);
                     setDescGrupo(group.descripcion);

@@ -5,6 +5,7 @@ import { useAuthStore } from '@/storage/useAuthStorage';
 import { GastoPersonal } from '@/storage/types';
 import ModalGastoPersonal from '@/components/ModalPersonal';
 import { useColorScheme } from 'react-native';
+import Card from '@/components/card';
 
 export default function ViewerGastos() {
   // Leer directo del store — ya está sincronizado con AsyncStorage via persist
@@ -34,27 +35,71 @@ export default function ViewerGastos() {
           gastosPersonales.map((gasto: GastoPersonal) => (
  
 
-            <View key={gasto.id}  style={[
-              styles.card, 
-              { backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF' }
-            ]}>
-              <View style={[{flexDirection: "column", gap: 4, backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF' }]}>
-                <Text style={styles.desc}>{gasto.descripcion}</Text>
-                <Text style={styles.categoria}>{gasto.categoria}</Text>
-              </View>
-              <Text style={styles.monto}>${gasto.monto.toLocaleString('es-CL')}</Text>
-              <View style={styles.container_button} lightColor='transparent' darkColor='transparent'>
-                      <Pressable onPress={() => {
-                        setSelectedGastoId(gasto.id);
-                        setModalVisible(true);
-                      }} style={styles.button_edit}>
-                        <Text lightColor='#fff'>Editar</Text>
-                      </Pressable>
-                      <Pressable onPress={() => handleEliminar(gasto.id)} style={styles.button_delete}>
-                        <Text lightColor='#fff'>Eliminar</Text>
-                      </Pressable>
-              </View>
-            </View>
+            // Card — agrega flexShrink para que respete el ancho del ScrollView
+          <Card>
+
+              <View style={[{ 
+                flexDirection: "column", 
+                gap: 1, 
+                minWidth: 0,       // ← permite que se encoja correctamente
+                backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF' 
+              }]}>
+                    {/* Columna de texto — flex:1 + minWidth:0 es la clave */}
+                    <View style={[{ 
+                      flexDirection: "row", 
+                      gap: 4, 
+                      flex: 1,           // ← ocupa el espacio disponible
+                      minWidth: 0,
+                      backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF' 
+                    }]}>
+                      <View style={[{ 
+                      flexDirection: "column", 
+                      gap: 4, 
+                      flex: 1,           // ← ocupa el espacio disponible
+                      minWidth: 0,
+                      backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF' 
+                    }]}>
+                        <Text 
+                          style={styles.desc} 
+                          numberOfLines={1}         // ← corta en 1 línea
+                          ellipsizeMode="tail"      // ← agrega "..."
+                        >
+                          {gasto.descripcion}
+                        </Text>
+                        <Text 
+                          style={styles.categoria}
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                        >
+                          {gasto.categoria}
+                        </Text>
+                      </View>
+                      {/* Monto — flexShrink:0 para que no se comprima */}
+                      <Text style={[styles.monto, { flexShrink: 0, marginHorizontal: 8 }]}>
+                        ${gasto.monto.toLocaleString('es-CL')}
+                      </Text>
+                </View>
+         
+          
+          {/* Botones — flexShrink:0 para que no se compriman */}
+          <View 
+            style={[styles.container_button, { flexShrink: 0 }]} 
+            lightColor='transparent' 
+            darkColor='transparent'
+          >
+            <Pressable onPress={() => {
+              setSelectedGastoId(gasto.id);
+              setModalVisible(true);
+            }} style={styles.button_edit}>
+              <Text lightColor='#fff'>Editar</Text>
+            </Pressable>
+            <Pressable onPress={() => handleEliminar(gasto.id)} style={styles.button_delete}>
+              <Text lightColor='#fff'>Eliminar</Text>
+            </Pressable>
+          </View>
+          </View>
+</Card> 
+
           ))
         )}
         
