@@ -139,7 +139,7 @@ export default function ViewerGroup(){
                     </Text>
                 </Pressable>
             {/* ── Acción de Administrador: Eliminar Grupo ── */}
-            {esAdmin && (
+            {esAdmin ? (
             <Pressable
                 style={({ pressed }) => [
                 styles.deleteBtn, 
@@ -168,6 +168,36 @@ export default function ViewerGroup(){
                 </RNView>
                 <Text style={styles.deleteText}>Eliminar grupo</Text>
             </Pressable>
+            ): (
+                <Pressable
+                style={({ pressed }) => [
+                styles.deleteBtn, 
+                pressed && styles.deleteBtnPressed,
+                ]}
+                 onPress={() => {
+                Alert.alert(
+                    "Salir del grupo",
+                    "¿Estás seguro que deseas salir de este grupo? Esta acción no se puede deshacer.",
+                    [
+                    { text: "Cancelar", style: "cancel" },
+                    {
+                        text: "Salir del grupo",
+                        style: "destructive",
+                        onPress: () => {
+                        deleteGroup(idGroup);
+                        router.back();
+                        },
+                    },
+                    ]
+                );
+                }}
+                >
+
+                    <RNView style={styles.deleteIconWrapper}>
+                    <FontAwesome name="trash" size={14} color="#FF3B30" />
+                    </RNView>
+                    <Text style={styles.deleteText}>Salir del grupo</Text>
+                </Pressable>
             )}
                         
              {
