@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { User } from './types';
 
 const USER_SESSION_KEY = '@user_session';
 const REGISTERED_USERS_KEY = '@registered_users';
@@ -55,6 +56,19 @@ export const authService = {
     }
   },
 
+  async updateUserRegistered(user: User) {
+    const storedUsers = await AsyncStorage.getItem(REGISTERED_USERS_KEY);
+    const users: User[] = storedUsers ? JSON.parse(storedUsers) : [];
+
+    const index = users.findIndex(u => u.id === user.id);
+
+    if (index === -1) return false; // usuario no encontrado
+
+    users[index] = { ...users[index], ...user }; // mergea los cambios
+
+    await AsyncStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(users));
+    return true;
+  },
   login: async (email: string, password: string) => {
     try {
       const storedUsers = await AsyncStorage.getItem(REGISTERED_USERS_KEY);

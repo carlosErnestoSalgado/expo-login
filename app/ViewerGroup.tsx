@@ -15,6 +15,8 @@ import SectionTitle from "@/components/sectiontitle";
 
 // Modals
 import ModalCreateEditGroup from "@/components/ModalCreateEditGroup";
+import { authService } from "@/storage/authservices";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 
 
@@ -28,15 +30,28 @@ export default function ViewerGroup(){
     const getMembers = useAuthStore((s) => s.getUsersFromGroup)
     const [members, setMembers] = useState<User[]>([])
 
+
+
     useEffect(() => {
     const fetchMembers = async () => {
         const result = await getMembers(idGroup);
         setMembers(result);
-        console.log(members)
+
     };
     fetchMembers();
     }, [idGroup]);
 
+
+    const handleDebug =  async () => {
+        const result = await AsyncStorage.getItem("@registered_users")
+        const user_registered =  JSON.parse(result ?? "[]")
+        console.log("Usarios registrados")       
+        console.log(user_registered)
+        const something = user_registered.filter((u: any) => u.groupIds.includes(idGroup));
+        console.log(something)
+    }
+
+    
     // Router para ir atras al elimianr el grupo
     const router = useRouter();
 
@@ -141,6 +156,18 @@ export default function ViewerGroup(){
             </Text>
            
             </Pressable>
+            {/* ── Debug ─────────────────────────────────────────────────────── */}
+                <Pressable
+                    style={({ pressed }) => [styles.debugBtn, pressed && { opacity: 0.5 }]}
+                    onPress={() => router.push('/DebugPage')}
+                >
+                    <FontAwesome name="bug" size={12} color="#8E8E93" />
+                    <Text style={styles.debugText} lightColor="#8E8E93" darkColor="#555">
+                    Ir a paágina de Debug
+                    </Text>
+                </Pressable>
+            
+
              {
                 group ?
                 <ModalCreateEditGroup modalCrear={modalEditGroup} setModalCrear={(modalEditGroup) => setModalEditGroup(modalEditGroup)} idGroup={idGroup} group={group}/>
@@ -203,5 +230,8 @@ const styles = StyleSheet.create({
 
   logoutBtn:      { alignItems: 'center', paddingVertical: 12, marginTop: 4 },
   logoutText:     { color: '#FF3B30', fontSize: 15, fontWeight: '600' },
-  containerGroups: {flexDirection: "column", gap: 4, justifyContent: "space-between"}
+  containerGroups: {flexDirection: "column", gap: 4, justifyContent: "space-between"},
+  
+  debugBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, marginBottom: 8 },
+  debugText:      { fontSize: 12 },
 });

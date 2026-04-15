@@ -61,26 +61,6 @@ export default function ProfileScreen() {
     .slice(0, 2)
     .join('')
     .toUpperCase() ?? '?';
-    // Botón temporal de reset
-    const handleReset = async () => {
-      await AsyncStorage.clear();
-      logout();
-      console.log('✅ Storage limpiado');
-    };
-
-  const handleDebug = async () => {
-    const users = await AsyncStorage.getItem('@registered_users');
-    const sessionInit = await AsyncStorage.getItem('@user_session');
-    const auth = await AsyncStorage.getItem('auth-storage');
-    const session = await AsyncStorage.getItem('auth-storage');
-  
-
-    console.log('👥 Usuarios registrados:', JSON.parse(users ?? '[]'));
-    console.log('🔐 Sesión iniciada actual:', JSON.parse(sessionInit ?? '{}'));
-    console.log('🏪 Auth store:', JSON.parse(auth ?? '{}'));
-    console.log("AuthStore", session)
-
-  };
 
   return (
     <ScrollView
@@ -177,23 +157,14 @@ export default function ProfileScreen() {
       {/* ── Debug ─────────────────────────────────────────────────────── */}
       <Pressable
         style={({ pressed }) => [styles.debugBtn, pressed && { opacity: 0.5 }]}
-        onPress={handleDebug}
+        onPress={() => router.push('/DebugPage')}
       >
         <FontAwesome name="bug" size={12} color="#8E8E93" />
         <Text style={styles.debugText} lightColor="#8E8E93" darkColor="#555">
-          Mostrar info en consola
+          Ir a paágina de Debug
         </Text>
       </Pressable>
-      {/* ── Reset ─────────────────────────────────────────────────────── */}
-      <Pressable
-        style={({ pressed }) => [styles.debugBtn, pressed && { opacity: 0.5 }]}
-        onPress={handleReset}
-      >
-        <FontAwesome name="eye" size={12} color="#8E8E93" />
-        <Text style={styles.debugText} lightColor="#8E8E93" darkColor="#555">
-          Reset Register Users
-        </Text>
-      </Pressable>
+   
 
 
 

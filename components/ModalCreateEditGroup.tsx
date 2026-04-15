@@ -5,6 +5,8 @@ import { Switch, TextInput, View as RNView, Pressable, StyleSheet, Platform} fro
 import { useColorScheme } from "react-native"
 import { Group } from "@/storage/types"
 import { useAuthStore } from "@/storage/useAuthStorage"
+import AsyncStorage from "@react-native-async-storage/async-storage"
+import { authService } from "@/storage/authservices"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -24,6 +26,7 @@ export default function ModalCreateEditGroup ({modalCrear, setModalCrear, idGrou
     const user     = useAuthStore((s) => s.user);
     const joinGroup  = useAuthStore((s) => s.joinGroup);
     const addIdGroupToUser = useAuthStore((s) => s.setIdGroupInUser)
+    //const u = useAuthStore((s) => s.setIdGroupInUser)
 
 
 
@@ -40,6 +43,7 @@ export default function ModalCreateEditGroup ({modalCrear, setModalCrear, idGrou
     const [descGrupo,   setDescGrupo]   = useState('');
     
     const isDark   = useColorScheme() === 'dark';
+
 
     
     const inputStyle = [
@@ -84,6 +88,12 @@ export default function ModalCreateEditGroup ({modalCrear, setModalCrear, idGrou
     
         joinGroup(nuevoGrupo);
         addIdGroupToUser(nuevoGrupo.id)
+        // Actualizo el ususario en state al registrado
+        if (user){
+          authService.updateUserRegistered(user);
+        }
+
+        //setIdGroupInUser(nuevoGrupo.id)
         setNombreGrupo('');
         setDescGrupo('');
         setModalCrear(false);

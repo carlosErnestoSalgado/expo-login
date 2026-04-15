@@ -366,8 +366,12 @@ export const useAuthStore = create<AuthState>()(
 },
 
   getUsersFromGroup: async (groupId: string) => {
+    console.log("String del id que llega ", groupId )
     const stored = await AsyncStorage.getItem('@registered_users');
     const users = JSON.parse(stored ?? '[]');
+    console.log("Usuarios registrados: ", users)
+    const group = users.filter((u: any) => u.groupIds.includes(groupId));
+    console.log("grupo: ", group)
     return users.filter((u: any) => u.groupIds.includes(groupId));
   },
 deleteGroupById: (groupId: string) => set((state) => ({
