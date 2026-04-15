@@ -24,12 +24,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export default function ViewerGroup(){
     const { idGroup } = useLocalSearchParams<{ idGroup: string }>();
 
+
+    const user  = useAuthStore((s) => s.user)
+
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
 
     const getMembers = useAuthStore((s) => s.getUsersFromGroup)
     const [members, setMembers] = useState<User[]>([])
-
 
 
     useEffect(() => {
@@ -64,10 +66,9 @@ export default function ViewerGroup(){
     // Group by Id
     const getGroupById = useAuthStore((s) => s.getGroupById);   
     const group = getGroupById(idGroup);
-    console.log("-----------------------------------------------------------------")
+
     
-    console.log("Id del GRupo", idGroup)
-    console.log("-----------------------------------------------------------------")
+    const esAdmin = group?.adminId === user?.id;
 
     const iniciales = group?.nombre
     ?.split(' ')
@@ -126,36 +127,7 @@ export default function ViewerGroup(){
                 <FontAwesome name="pencil" size={16} color="#FFF" />
                 <Text style={styles.ctaBtnText}>Editar Grupo</Text>
             </Pressable>
-            <Pressable
-            style={({ pressed }) => [styles.deleteBtn, pressed && { transform: [{ scale: 1.20 }], opacity: 0.85  }]}
-            onPress={() => {
-                Alert.alert(
-                    "Eliminar grupo",
-                    "¿Estás seguro que deseas eliminar este grupo?",
-                    [
-                        {
-                        text: "Cancelar",
-                        style: "cancel"
-                        },
-                        {
-                        text: "Eliminar",
-                        style: "destructive",  // rojo en iOS
-                        onPress: () => {
-                            deleteGroup(idGroup);
-                            router.back();  // volver atrás después de eliminar
-                        }
-                        }
-                    ]
-                    )
-                }
-            }
-            >
-            <FontAwesome name="trash" size={12} color="red" />
-            <Text style={styles.deleteText} lightColor="#8E8E93" darkColor="#555">
-                Eliminar grupo
-            </Text>
-           
-            </Pressable>
+            
             {/* ── Debug ─────────────────────────────────────────────────────── */}
                 <Pressable
                     style={({ pressed }) => [styles.debugBtn, pressed && { opacity: 0.5 }]}
@@ -166,8 +138,38 @@ export default function ViewerGroup(){
                     Ir a paágina de Debug
                     </Text>
                 </Pressable>
-            
-
+            {/* ── Acción de Administrador: Eliminar Grupo ── */}
+            {esAdmin && (
+            <Pressable
+                style={({ pressed }) => [
+                styles.deleteBtn, 
+                pressed && styles.deleteBtnPressed,
+                ]}
+                onPress={() => {
+                Alert.alert(
+                    "Eliminar grupo",
+                    "¿Estás seguro que deseas eliminar este grupo? Esta acción no se puede deshacer.",
+                    [
+                    { text: "Cancelar", style: "cancel" },
+                    {
+                        text: "Eliminar",
+                        style: "destructive",
+                        onPress: () => {
+                        deleteGroup(idGroup);
+                        router.back();
+                        },
+                    },
+                    ]
+                );
+                }}
+            >
+                <RNView style={styles.deleteIconWrapper}>
+                <FontAwesome name="trash" size={14} color="#FF3B30" />
+                </RNView>
+                <Text style={styles.deleteText}>Eliminar grupo</Text>
+            </Pressable>
+            )}
+                        
              {
                 group ?
                 <ModalCreateEditGroup modalCrear={modalEditGroup} setModalCrear={(modalEditGroup) => setModalEditGroup(modalEditGroup)} idGroup={idGroup} group={group}/>
@@ -224,8 +226,6 @@ const styles = StyleSheet.create({
   ctaPressed:     { transform: [{ scale: 0.97 }], opacity: 0.85 },
   ctaBtnText:     { color: '#FFF', fontSize: 16, fontWeight: '800' },
 
-  deleteBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, marginBottom: 8 },
-  deleteText:      { fontSize: 12 , color: "red"},
 
 
   logoutBtn:      { alignItems: 'center', paddingVertical: 12, marginTop: 4 },
@@ -234,4 +234,29 @@ const styles = StyleSheet.create({
   
   debugBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, marginBottom: 8 },
   debugText:      { fontSize: 12 },
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginTop: 20,
+    backgroundColor: '#FF3B3010', // Un fondo rojo muy sutil
+    borderWidth: 1,
+    borderColor: '#FF3B3020',
+    alignSelf: 'center', // O flex-start según tu diseño
+  },
+  deleteBtnPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.96 }], // Efecto de hundimiento más natural que el 1.20
+    backgroundColor: '#FF3B3020',
+  },
+  deleteIconWrapper: {
+    marginRight: 8,
+  },
+  deleteText: {
+    color: '#FF3B30', // Texto en rojo para indicar peligro
+    fontSize: 14,
+    fontWeight: '600',
+  },
 });
