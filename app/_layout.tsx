@@ -8,6 +8,7 @@ import 'react-native-reanimated';
 import { authService } from '@/storage/authservices';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useAuthStore } from '@/storage/useAuthStorage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export {
   ErrorBoundary,
@@ -20,6 +21,7 @@ export const unstable_settings = {
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
@@ -35,6 +37,7 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
+  
   if (!loaded) {
     return null;
   }

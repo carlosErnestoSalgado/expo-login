@@ -24,7 +24,7 @@ interface ModaleInterface {
 export default function ModalCreateEditGroup ({modalCrear, setModalCrear, idGroup, group}:ModaleInterface){
     //Authstate
     const user     = useAuthStore((s) => s.user);
-    const joinGroup  = useAuthStore((s) => s.joinGroup);
+    const createGroup  = useAuthStore((s) => s.createGroup);
     const addIdGroupToUser = useAuthStore((s) => s.setIdGroupInUser)
     //const u = useAuthStore((s) => s.setIdGroupInUser)
 
@@ -76,7 +76,7 @@ export default function ModalCreateEditGroup ({modalCrear, setModalCrear, idGrou
           adminId:      user?.id ?? '',
           members:      [user?.id ?? ''],
           miembros:     user
-          ? [{ userId: user.id, nombre: user.name, salario: 0, metaAhorroIndividual: 0 }]
+          ? [{ userId: user.id, nombre: user.name, salario: user.salario, metaAhorroIndividual: 0 }]
           : [],
           ahorroComun:    null,
           esGastos:     moneySaveGroup,
@@ -86,7 +86,7 @@ export default function ModalCreateEditGroup ({modalCrear, setModalCrear, idGrou
           metaGuardar:  meta
         };
     
-        joinGroup(nuevoGrupo);
+        createGroup(nuevoGrupo);
         addIdGroupToUser(nuevoGrupo.id)
         // Actualizo el ususario en state al registrado
         if (user){

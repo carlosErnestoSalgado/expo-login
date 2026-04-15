@@ -144,3 +144,11 @@ export interface ResumenMes {
   saldoRestanteP2: number;
   deudaEntrePersonas: number; // Positivo = P2 le debe a P1, negativo = al revés
 }
+
+
+export interface Member {
+    userId: string | undefined;
+    nombre: string | undefined;
+    salario: number | undefined;
+    metaAhorroIndividual: number;
+}

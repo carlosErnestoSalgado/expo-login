@@ -5,6 +5,7 @@ import {
   AhorroComun, AportesMes,
   FinanzasMes, MiembroGrupo,
   ResumenMes, MesNombre,
+  Member,
 } from './types';
 import { Platform } from 'react-native';
 import { persist, createJSONStorage } from 'zustand/middleware';
@@ -55,6 +56,8 @@ function calcularResumen(mes: FinanzasMes, miembros: MiembroGrupo[]): ResumenMes
   };
 }
 
+
+
 // ─── ESTADO ────────────────────────────────────────────────────────────────────
 
 interface AuthState {
@@ -81,7 +84,8 @@ interface AuthState {
 
   // ── Acciones de Grupos ──
   setGroups: (groups: Group[]) => void;
-  joinGroup: (group: Group) => void;
+  joinGroup: (newMember: MiembroGrupo, grupoId:string) => void;
+  createGroup: (group: Group) => void;
   setIdGroupInUser: (id: string) => void;
 
   // ── Acciones de Miembros del grupo ──
@@ -118,10 +122,11 @@ interface AuthState {
   // Acciones para grupos
   getGroupById: (grupoId: string) => Group | null;
   deleteGroupById: (groupId:string) => void;
-  getGroupByUser: () => Group[];
+  getGroupByUser: () => Group[] | null;
 
   // Obtener miembros de un grupo
   getUsersFromGroup: (groupId: string) => Promise<User[]>; 
+  exitOfGroup: (groupId: string) => void;
   
 }
 
@@ -178,8 +183,18 @@ export const useAuthStore = create<AuthState>()(
   // ── Grupos ──
   setGroups: (groups) => set({ groups }),
 
-  joinGroup: (group) => set((state) => ({
-    groups: [...state.groups, group],
+  createGroup: (grupo) => set((state) => ({
+  groups: [...state.groups, grupo]
+  })),
+
+  joinGroup: (newMember: MiembroGrupo, grupoId: string) => set((state) => ({
+    groups: state.groups.map(g =>
+      g.id !== grupoId ? g : {
+        ...g,
+        members: [...g.members, newMember.userId],      // ← solo el ID
+        miembros: [...g.miembros, newMember],            // ← objeto completo
+      }
+    )
   })),
 
   setIdGroupInUser: (id) => set((state) => ({
@@ -359,10 +374,14 @@ export const useAuthStore = create<AuthState>()(
 },
 
   getGroupByUser: () => {
-    const userId = get().user?.id
-  return get().groups.filter(g => 
-    g.members.some(m => m === userId)
-  );
+
+  
+  const userId = get().user?.id;
+  const groups = get().groups ?? []; // ← fallback a [] si es undefined
+
+  if (groups.length === 0) return [];
+
+  return groups.filter((group) => group.members.some(u => u === userId));
 },
 
   getUsersFromGroup: async (groupId: string) => {
@@ -374,6 +393,30 @@ export const useAuthStore = create<AuthState>()(
     console.log("grupo: ", group)
     return users.filter((u: any) => u.groupIds.includes(groupId));
   },
+exitOfGroup: (groupId: string) => {
+const userId = get().user?.id;
+  if (!userId) return;
+
+  // Obtenemos los grupos actuales
+  const currentGroups = get().groups;
+
+  // Actualizamos el estado
+  const updatedGroups = currentGroups.map((group) => {
+    // 1. Buscamos el grupo específico por ID
+    if (group.id === groupId) {
+      return {
+        ...group,
+        // 2. Filtramos el arreglo de miembros para remover al usuario
+        members: group.members.filter((mId: string) => mId !== userId),
+      };
+    }
+    // 3. Los demás grupos se mantienen igual
+    return group;
+  });
+
+  // Guardamos el nuevo estado
+  set({ groups: updatedGroups });
+},
 deleteGroupById: (groupId: string) => set((state) => ({
   groups: state.groups.filter(g => g.id !== groupId)
 }))

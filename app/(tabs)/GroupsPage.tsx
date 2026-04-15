@@ -7,7 +7,7 @@ import { useAuthStore } from '@/storage/useAuthStorage';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Text, View } from '@/components/Themed';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Group } from '@/storage/types';
+import { Group, MiembroGrupo } from '@/storage/types';
 import { useRoute } from '@react-navigation/native';
 
 // ─── Componentes ────────────────────────────────────────────────────────────────
@@ -42,17 +42,16 @@ export default function TabTwoScreen() {
   const [codigo, setCodigo] = useState('');
   const [errorCodigo, setErrorCodigo] = useState('');
 
-  // Filtrar grupos del usuario
-  const getGroup = useAuthStore((s) => s.getGroupByUser);
-  const groups_user = getGroup();
 
+  const getGroupByUser = useAuthStore((s) => s.getGroupByUser); // ← solo la función
+
+  // ✅ Llamala fuera del selector
+  const groups_user = getGroupByUser() ?? [];
 
   // ── Unirse a grupo ─────────────────────────────────────────────────────────
   const handleUnirse = () => {
     const codigoLimpio = codigo.trim().toUpperCase();
-    const grupoEncontrado = groups.find(
-      (g) => g.codigoUnirse === codigoLimpio
-    );
+    const grupoEncontrado = groups.find(g => g.codigoUnirse === codigoLimpio);
 
     if (!grupoEncontrado) {
       setErrorCodigo('Código inválido. Verifica e intenta de nuevo.');
@@ -63,13 +62,20 @@ export default function TabTwoScreen() {
       return;
     }
 
-    joinGroup({
-      ...grupoEncontrado,
-      members: [...grupoEncontrado.members, user?.id ?? ''],
-    });
-    setCodigo('');
-    setErrorCodigo('');
-    setModalUnirse(false);
+    // ✅ Usá grupoEncontrado directamente, ya lo tenés arriba
+    if (user) {
+      const member: MiembroGrupo = {
+        userId: user.id,
+        nombre: user.name,
+        salario: user.salario,
+        metaAhorroIndividual: 0
+      };
+      joinGroup(member, grupoEncontrado.id); // ← sin hook ilegal
+      setCodigo('');
+      setErrorCodigo('');
+      setModalUnirse(false);
+    }
+  
   };
 
   const inputStyle = [

@@ -34,6 +34,9 @@ export default function ViewerGroup(){
     const [members, setMembers] = useState<User[]>([])
 
 
+    // salir del grupo
+    const exitOfGroup = useAuthStore((s) => s.exitOfGroup)
+
     useEffect(() => {
     const fetchMembers = async () => {
         const result = await getMembers(idGroup);
@@ -66,6 +69,7 @@ export default function ViewerGroup(){
     // Group by Id
     const getGroupById = useAuthStore((s) => s.getGroupById);   
     const group = getGroupById(idGroup);
+
 
     
     const esAdmin = group?.adminId === user?.id;
@@ -184,7 +188,7 @@ export default function ViewerGroup(){
                         text: "Salir del grupo",
                         style: "destructive",
                         onPress: () => {
-                        deleteGroup(idGroup);
+                        exitOfGroup(idGroup);
                         router.back();
                         },
                     },
