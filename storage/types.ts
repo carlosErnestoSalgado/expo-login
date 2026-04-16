@@ -113,7 +113,8 @@ export interface Group {
   adminId: string;       // ID del creador
   members: string[];     // IDs de los miembros
   esGastos: boolean;
-  gastosComunes: Number, 
+  totalGastosComunes: Number, 
+  gastosDelGrupo: GastoComun[],
   esAhorro: boolean,
   metaGuardar: Number,
   // Configuración financiera del grupo (lo que define el Excel)

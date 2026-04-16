@@ -17,9 +17,16 @@ import SectionTitle from "@/components/sectiontitle";
 import ModalCreateEditGroup from "@/components/ModalCreateEditGroup";
 import { authService } from "@/storage/authservices";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import ModalGastoPersonal from "@/components/ModalPersonal";
+import ModalGastoComun from "@/components/ModalGastoComun";
 
-
-
+import GastoComunRow from "@/components/GastoComenRow";
+// Helper — fuera del componente
+function getMesActivoId(): string {
+  const now = new Date();
+  const mm  = String(now.getMonth() + 1).padStart(2, '0');
+  return `${now.getFullYear()}-${mm}`;
+}
 
 export default function ViewerGroup(){
     const { idGroup } = useLocalSearchParams<{ idGroup: string }>();
@@ -33,6 +40,8 @@ export default function ViewerGroup(){
     const getMembers = useAuthStore((s) => s.getUsersFromGroup)
     const [members, setMembers] = useState<User[]>([])
 
+    const [visibleModalGasto, setVisibleModalGasto] = useState(false);
+     
 
     // salir del grupo
     const exitOfGroup = useAuthStore((s) => s.exitOfGroup)
@@ -47,6 +56,17 @@ export default function ViewerGroup(){
     }, [idGroup]);
 
 
+    // Al inicio del componente, junto a los otros selectores
+    const gastosComunes = useAuthStore((s) => {
+    
+        return s.groups
+            .find(g => g.id === idGroup)
+            ?.gastosDelGrupo ?? [];
+        });
+
+    console.log("Gastos comunes: ", gastosComunes)
+    const deleteGastoComun = useAuthStore((s) => s.deleteGastoComun);
+    
     const handleDebug =  async () => {
         const result = await AsyncStorage.getItem("@registered_users")
         const user_registered =  JSON.parse(result ?? "[]")
@@ -67,9 +87,10 @@ export default function ViewerGroup(){
     const [modalEditGroup, setModalEditGroup] = useState(false);
     
     // Group by Id
-    const getGroupById = useAuthStore((s) => s.getGroupById);   
-    const group = getGroupById(idGroup);
-
+    //const getGroupById = useAuthStore((s) => s.getGroupById);   
+    //const group = getGroupById(idGroup);
+    // ✅ Así debe quedar — selector directo, sin llamar a getGroupById
+    const group = useAuthStore((s) => s.groups.find((g) => g.id === idGroup) ?? null);
 
     
     const esAdmin = group?.adminId === user?.id;
@@ -117,10 +138,44 @@ export default function ViewerGroup(){
             ))}
             </RNView>
             </Card>
+            {/* ── Gastos comunes del mes ──────────────────────────────────── */}
+            <SectionTitle text="Gastos comunes del mes" />
+
+            {gastosComunes.length === 0 ? (
+            <Card>
+                <RNView style={{ alignItems: 'center', paddingVertical: 24, gap: 8 }}>
+                <FontAwesome name="inbox" size={36} color={isDark ? '#3A3A3C' : '#DDD'} />
+                <Text lightColor="#AAA" darkColor="#555" style={{ fontSize: 14, fontWeight: '600' }}>
+                    Sin gastos este mes
+                </Text>
+                </RNView>
+            </Card>
+            ) : (
+            gastosComunes.map((gasto) => (
+                <GastoComunRow
+                key={gasto.id}
+                gasto={gasto}
+                isDark={isDark}
+                onEliminar={() => deleteGastoComun(idGroup, getMesActivoId(), gasto.id)}
+                />
+            ))
+            )}
 
              {/* ── Acciones  ──────────────────────────────────────────── */}
             <SectionTitle text="Acciones sobre el grupo" />
 
+            {/* ── Añadir gasto ─────────────────────────────────────────────────────── */}
+                <Pressable
+                    style={({ pressed }) => [styles.debugBtn, pressed && { opacity: 0.5 }]}
+                    onPress={() => setVisibleModalGasto(true)}
+                >
+                    <FontAwesome name="plus" size={12} color="#8E8E93" />
+                    <Text style={styles.debugText} lightColor="#8E8E93" darkColor="#555">
+                    Añadir Gasto
+                    </Text>
+                </Pressable>
+           
+            {/* ── Editar  ──────────────────────────────────────────── */}
             <Pressable
             onPress={() => {
                 console.log("Edit Group");
@@ -142,7 +197,9 @@ export default function ViewerGroup(){
                     Ir a paágina de Debug
                     </Text>
                 </Pressable>
-            {/* ── Acción de Administrador: Eliminar Grupo ── */}
+           
+           
+            {/* ── Acción de Administrador: Eliminar Grupo  o Salir── */}
             {esAdmin ? (
             <Pressable
                 style={({ pressed }) => [
@@ -203,12 +260,22 @@ export default function ViewerGroup(){
                     <Text style={styles.deleteText}>Salir del grupo</Text>
                 </Pressable>
             )}
-                        
+
+
+
+             {/* ── Modal para editar grupo  ──────────────────────────────────────────── */}           
              {
                 group ?
                 <ModalCreateEditGroup modalCrear={modalEditGroup} setModalCrear={(modalEditGroup) => setModalEditGroup(modalEditGroup)} idGroup={idGroup} group={group}/>
                 : null
-            }
+             }
+             {/* ── Modal gasto personal ──────────────────────────────────────── */}
+                <ModalGastoComun
+                visible={visibleModalGasto}
+                idGrupo={idGroup}
+                onClose={() => setVisibleModalGasto(false)}
+                />
+                
     </ScrollView>)
 }
 

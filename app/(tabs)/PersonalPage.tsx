@@ -123,14 +123,18 @@ export default function ProfileScreen() {
       <SectionTitle text="Grupos a los que pertenece" />
       <Card>
         <RNView style={styles.containerGroups}>
-          {groups.map((g, index) => (
-            <RNView key={index}>
-              <Text>{g.nombre}</Text>
-              <RNView style={styles.groupBadge}>
-                <Text style={styles.groupBadgeText}>🏠 {g.descripcion}</Text>
+          {groups ? (
+            groups.map((g, index) => (
+              <RNView key={index}>
+                <Text>{g.nombre}</Text>
+                <RNView style={styles.groupBadge}>
+                  <Text style={styles.groupBadgeText}>
+                    🏠 {g.descripcion}
+                  </Text>
+                </RNView>
               </RNView>
-            </RNView>
-          ))}
+            ))
+          ) : null}
         </RNView>
       </Card>
 

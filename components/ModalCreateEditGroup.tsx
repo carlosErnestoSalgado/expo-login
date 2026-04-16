@@ -57,7 +57,7 @@ export default function ModalCreateEditGroup ({modalCrear, setModalCrear, idGrou
         setNombreGrupo(group.nombre);
         setDescGrupo(group.descripcion);
         setMoneySaveGroup(group.esAhorro);
-        setGastosComunes(group.gastosComunes);
+        setGastosComunes(group.totalGastosComunes);
         SetAlcancia(group.esAhorro);
         setMeta(group.metaGuardar);
       }
@@ -80,9 +80,10 @@ export default function ModalCreateEditGroup ({modalCrear, setModalCrear, idGrou
           : [],
           ahorroComun:    null,
           esGastos:     moneySaveGroup,
-          gastosComunes: moneySaveGroup ? gastosComunes : 0,
+          totalGastosComunes: moneySaveGroup ? gastosComunes : 0,
           historialMeses: [],
           esAhorro:     alcancia,
+          gastosDelGrupo: [],
           metaGuardar:  meta
         };
     
@@ -207,7 +208,7 @@ export default function ModalCreateEditGroup ({modalCrear, setModalCrear, idGrou
                     setNombreGrupo(group.nombre);
                     setDescGrupo(group.descripcion);
                     setMoneySaveGroup(group.esAhorro);
-                    setGastosComunes(group.gastosComunes);
+                    setGastosComunes(group.totalGastosComunes);
                     SetAlcancia(group.esAhorro);
                     setMeta(group.metaGuardar);
                   }

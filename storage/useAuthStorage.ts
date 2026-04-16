@@ -11,6 +11,7 @@ import { Platform } from 'react-native';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService } from './authservices';
+import GrupoCard from '@/components/GroupCard';
 
 
 // ─── HELPERS ───────────────────────────────────────────────────────────────────
@@ -98,7 +99,7 @@ interface AuthState {
   updateAhorroComun: (grupoId: string, mesId: string, nuevoMonto: number) => void;
 
   // ── Acciones de Gastos Comunes ──
-  addGastoComun: (grupoId: string, mesId: string, gasto: GastoComun) => void;
+  addGastoComun: (grupoId: string, gasto: GastoComun) => void;
   updateGastoComun: (grupoId: string, mesId: string, gasto: GastoComun) => void;
   deleteGastoComun: (grupoId: string, mesId: string, gastoId: string) => void;
 
@@ -247,12 +248,14 @@ export const useAuthStore = create<AuthState>()(
   })),
 
   // ── Gastos Comunes ──
-  addGastoComun: (grupoId, mesId, gasto) => set((state) => ({
-    groups: updateMesEnGrupo(state.groups, grupoId, mesId, (m) => ({
-      ...m, gastosComunes: [...m.gastosComunes, gasto],
-    })),
-  })),
-
+  addGastoComun: (grupoId, gasto) => set((state) => ({
+  groups: state.groups.map(g =>
+    g.id !== grupoId ? g : {
+      ...g,
+      gastosDelGrupo: [...g.gastosDelGrupo, gasto],
+    }
+  ),
+})),
   updateGastoComun: (grupoId, mesId, gasto) => set((state) => ({
     groups: updateMesEnGrupo(state.groups, grupoId, mesId, (m) => ({
       ...m,
@@ -392,6 +395,9 @@ export const useAuthStore = create<AuthState>()(
     const group = users.filter((u: any) => u.groupIds.includes(groupId));
     console.log("grupo: ", group)
     return users.filter((u: any) => u.groupIds.includes(groupId));
+  },
+  updateGastosgrupo: (grupoId:string) => {
+
   },
 exitOfGroup: (groupId: string) => {
 const userId = get().user?.id;

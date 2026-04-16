@@ -61,7 +61,7 @@ export default function ViewerGastos() {
 
 
 
-            // Card — agrega flexShrink para que respete el ancho del ScrollView
+           
           <Card>
 
               <View style={[{ 
