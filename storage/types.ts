@@ -30,7 +30,7 @@ export type CategoriaPersonal =
 export interface GastoComun {
   id: string;
   descripcion: string;
-  categoria: CategoriaComun;
+  categoria: CategoriaComun | null;
   monto: number;
   quienPago: string | null; // null = gasto compartido sin pagador específico
   fecha?: string;           // ISO date string, opcional
@@ -131,7 +131,7 @@ export interface MiembroGrupo {
   nombre: string;       // "Carlos", "Camila"
   salario: number;
   metaAhorroIndividual: number;
-  porcentaje?: Float;   // Porcentaje de lo que debe aportar el miembro a los gastpos del grupo si es esGastos
+  porcentaje: number;   // Porcentaje de lo que debe aportar el miembro a los gastpos del grupo si es esGastos
 
 }
 

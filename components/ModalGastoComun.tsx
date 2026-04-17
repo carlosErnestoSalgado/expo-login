@@ -9,7 +9,8 @@ import { useAuthStore } from '@/storage/useAuthStorage';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Text, View } from '@/components/Themed';
 import { showMessage } from 'react-native-flash-message';
-import { CategoriaComun } from '@/storage/types';
+import { CategoriaComun, MiembroGrupo } from '@/storage/types';
+import { DeudaMiembro } from '@/storage/types';
 
 
 const CATEGORIAS_COMUNES: { label: string; value: CategoriaComun; icon: string }[] = [
@@ -53,6 +54,12 @@ export default function ModalGastoComun({ visible, idGrupo, onClose }: Props) {
   const isDark      = useColorScheme() === 'dark';
 
   const addGastoComun = useAuthStore((s) => s.addGastoComun);
+
+  const miembros  = useAuthStore((s) => {
+        return s.groups
+        .find(g => g.id == idGrupo)
+        ?.miembros ?? [] 
+    })
   
   const user = useAuthStore((s)=> s.user)
 
@@ -106,13 +113,18 @@ useEffect(() => {
     const mesId = getMesActivoId();
 
     const newGastoComun = {
-        id: generateGastoId(),
-        descripcion: descripcion,
-        categoria: categoria,
-        monto: monto,
-        quienPago: user.id, // null = gasto compartido sin pagador específico
-        fecha: mesId,          // ISO date string, opcional
-    }
+    id: generateGastoId(),
+    descripcion: descripcion,
+    categoria: categoria,
+    monto: monto,
+    quienPago: user?.id,
+    fecha: mesId,
+    deuda: miembros.map((m: MiembroGrupo) => ({   // paréntesis en el tipo y objeto
+        porcentaje: (m.porcentaje ?? 0) * monto,          // era m.debe: * monto
+        deudaMiembro: false,
+        user_id: m.userId                          // userId, no m.id
+    }))
+}
 
       // ✅ Modo edición — sintaxis correcta
     addGastoComun(idGrupo, newGastoComun)
