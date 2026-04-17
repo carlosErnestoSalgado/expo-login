@@ -110,7 +110,7 @@ export default function ViewerGroup(){
     
     return(
      <ScrollView
-          style={{ flex: 1, backgroundColor: isDark ? '#121212' : '#F5F7FA' }}
+          style={{ flex: 1, backgroundColor: isDark ? '#121212' : '#F5F7FA' , height: "auto"}}
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
         >
@@ -146,6 +146,10 @@ export default function ViewerGroup(){
             {/* ── Gastos comunes del mes ──────────────────────────────────── */}
             <SectionTitle text="Gastos comunes del mes" />
 
+            <ScrollView style={{ height: 200 }}        // ← altura fija obligatoria
+    nestedScrollEnabled={true}     // ← Android
+    scrollEnabled={true}>
+
             {gastosComunes.length === 0 ? (
             <Card>
                 <RNView style={{ alignItems: 'center', paddingVertical: 24, gap: 8 }}>
@@ -165,6 +169,7 @@ export default function ViewerGroup(){
                 />
             ))
             )}
+            </ScrollView>
 
              {/* ── Acciones  ──────────────────────────────────────────── */}
             <SectionTitle text="Acciones sobre el grupo" />
