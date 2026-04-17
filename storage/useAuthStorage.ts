@@ -128,6 +128,10 @@ interface AuthState {
   // Obtener miembros de un grupo
   getUsersFromGroup: (groupId: string) => Promise<User[]>; 
   exitOfGroup: (groupId: string) => void;
+
+
+  // Para porcentaje en grupo
+  updatePorcentajeMember: (codigoUnirse: string, totalIncomes: number) => void;
   
 }
 
@@ -217,7 +221,17 @@ export const useAuthStore = create<AuthState>()(
       }
     ),
   })),
-
+  updatePorcentajeMember: (codigoUnirse, totalIncomes) => set((state) => ({
+  groups: state.groups.map(g =>
+    g.codigoUnirse !== codigoUnirse ? g : {  // ← !== para actualizar el grupo correcto
+      ...g,
+      miembros: g.miembros.map(m => ({       // ← paréntesis alrededor del objeto
+        ...m,
+        porcentaje: Math.round((m.salario / totalIncomes) * 100) / 100 // ←
+      }))
+    }
+  )
+})),
   updateMetaAhorroIndividual: (grupoId, userId, meta) => set((state) => ({
     groups: state.groups.map(g =>
       g.id !== grupoId ? g : {
@@ -377,8 +391,6 @@ export const useAuthStore = create<AuthState>()(
 },
 
   getGroupByUser: () => {
-
-  
   const userId = get().user?.id;
   const groups = get().groups ?? []; // ← fallback a [] si es undefined
 
@@ -399,34 +411,21 @@ export const useAuthStore = create<AuthState>()(
   updateGastosgrupo: (grupoId:string) => {
 
   },
-exitOfGroup: (groupId: string) => {
-const userId = get().user?.id;
-  if (!userId) return;
-
-  // Obtenemos los grupos actuales
-  const currentGroups = get().groups;
-
-  // Actualizamos el estado
-  const updatedGroups = currentGroups.map((group) => {
-    // 1. Buscamos el grupo específico por ID
-    if (group.id === groupId) {
-      return {
-        ...group,
-        // 2. Filtramos el arreglo de miembros para remover al usuario
-        members: group.members.filter((mId: string) => mId !== userId),
-      };
+exitOfGroup: (groupId: string) => set((state) => ({
+  groups: state.groups.map(g =>
+    g.id !== groupId ? g : {
+      ...g,
+      miembros: g.miembros.filter(m => m.userId !== state.user?.id),
+      members: g.members.filter(u => u != state.user?.id)
     }
-    // 3. Los demás grupos se mantienen igual
-    return group;
-  });
+  )
+})),
 
-  // Guardamos el nuevo estado
-  set({ groups: updatedGroups });
-},
-deleteGroupById: (groupId: string) => set((state) => ({
-  groups: state.groups.filter(g => g.id !== groupId)
-}))
-
+deleteGroupById: (groupId: string) => set((s) => ({
+  groups: s.groups.filter(g =>
+    g.id !== groupId
+  )
+})),
 
 }),  {
       name: 'auth-storage',        // clave en AsyncStorage

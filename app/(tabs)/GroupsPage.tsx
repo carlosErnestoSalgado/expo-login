@@ -41,6 +41,11 @@ export default function TabTwoScreen() {
   // Form — Unirse
   const [codigo, setCodigo] = useState('');
   const [errorCodigo, setErrorCodigo] = useState('');
+  
+  
+  // actualizo porcentaje a todos los miembros del grupo
+  const updatePorcentajeMembers = useAuthStore((s) => s.updatePorcentajeMember)
+
 
 
   const getGroupByUser = useAuthStore((s) => s.getGroupByUser); // ← solo la función
@@ -61,16 +66,29 @@ export default function TabTwoScreen() {
       setErrorCodigo('Ya eres miembro de este grupo.');
       return;
     }
+    
 
-    // ✅ Usá grupoEncontrado directamente, ya lo tenés arriba
+
+    // Usá grupoEncontrado directamente, ya lo tenés arriba
     if (user) {
+
+      // Calculo el total de ingresos del grupo
+      const members  = grupoEncontrado.miembros;
+      const totalIncomesGroup = members.reduce((acc, g) => acc + g.salario,
+      0) + user?.salario;
+
       const member: MiembroGrupo = {
         userId: user.id,
         nombre: user.name,
         salario: user.salario,
         metaAhorroIndividual: 0
       };
+
+
       joinGroup(member, grupoEncontrado.id); // ← sin hook ilegal
+
+
+      updatePorcentajeMembers(codigoLimpio, totalIncomesGroup) // actualizo todos los porcentajes
       setCodigo('');
       setErrorCodigo('');
       setModalUnirse(false);

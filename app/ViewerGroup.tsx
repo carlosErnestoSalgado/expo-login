@@ -5,7 +5,7 @@ import { useColorScheme, Platform, View as RNView, Image } from "react-native";
 import { useAuthStore } from "@/storage/useAuthStorage";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { User } from "@/storage/types";
+import { MiembroGrupo, User } from "@/storage/types";
 import { useLocalSearchParams } from 'expo-router';
 
 // Components
@@ -15,18 +15,19 @@ import SectionTitle from "@/components/sectiontitle";
 
 // Modals
 import ModalCreateEditGroup from "@/components/ModalCreateEditGroup";
-import { authService } from "@/storage/authservices";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import ModalGastoPersonal from "@/components/ModalPersonal";
+
 import ModalGastoComun from "@/components/ModalGastoComun";
 
 import GastoComunRow from "@/components/GastoComenRow";
+import { calcularBalancesGrupo, calcularTransferencias } from "@/functions/balances";
+
 // Helper — fuera del componente
 function getMesActivoId(): string {
   const now = new Date();
   const mm  = String(now.getMonth() + 1).padStart(2, '0');
   return `${now.getFullYear()}-${mm}`;
 }
+
 
 export default function ViewerGroup(){
     const { idGroup } = useLocalSearchParams<{ idGroup: string }>();
@@ -38,22 +39,13 @@ export default function ViewerGroup(){
     const isDark = colorScheme === 'dark';
 
     const getMembers = useAuthStore((s) => s.getUsersFromGroup)
-    const [members, setMembers] = useState<User[]>([])
+    
 
     const [visibleModalGasto, setVisibleModalGasto] = useState(false);
      
 
     // salir del grupo
     const exitOfGroup = useAuthStore((s) => s.exitOfGroup)
-
-    useEffect(() => {
-    const fetchMembers = async () => {
-        const result = await getMembers(idGroup);
-        setMembers(result);
-
-    };
-    fetchMembers();
-    }, [idGroup]);
 
 
     // Al inicio del componente, junto a los otros selectores
@@ -64,18 +56,29 @@ export default function ViewerGroup(){
             ?.gastosDelGrupo ?? [];
         });
 
-    console.log("Gastos comunes: ", gastosComunes)
+    // Miembros del grupo
+    const miembros  = useAuthStore((s) => {
+        return s.groups
+        .find(g => g.id == idGroup)
+        ?.miembros ?? [] 
+    })
+    /*
+    const balances =
+    calcularBalancesGrupo(
+        miembros,
+        gastosComunes
+    );
+
+    const transferencias =
+    calcularTransferencias(
+        balances
+    );
+
+    console.log("Balances:", balances);
+    console.log("Transferencias:", transferencias);*/
+        
     const deleteGastoComun = useAuthStore((s) => s.deleteGastoComun);
     
-    const handleDebug =  async () => {
-        const result = await AsyncStorage.getItem("@registered_users")
-        const user_registered =  JSON.parse(result ?? "[]")
-        console.log("Usarios registrados")       
-        console.log(user_registered)
-        const something = user_registered.filter((u: any) => u.groupIds.includes(idGroup));
-        console.log(something)
-    }
-
     
     // Router para ir atras al elimianr el grupo
     const router = useRouter();
@@ -89,10 +92,12 @@ export default function ViewerGroup(){
     // Group by Id
     //const getGroupById = useAuthStore((s) => s.getGroupById);   
     //const group = getGroupById(idGroup);
-    // ✅ Así debe quedar — selector directo, sin llamar a getGroupById
+
+    //  selector directo, sin llamar a getGroupById
     const group = useAuthStore((s) => s.groups.find((g) => g.id === idGroup) ?? null);
 
     
+
     const esAdmin = group?.adminId === user?.id;
 
     const iniciales = group?.nombre
@@ -133,8 +138,8 @@ export default function ViewerGroup(){
             <RNView style={styles.divider} />
             <RNView>
             <Text>Miembros del grupo:</Text>
-            {members.map((u) => (
-                <Text key={u.id}>{u.name}</Text>
+            {(miembros ?? [] ).map((u) => (
+                <Text key={u.userId}>{u.nombre}</Text>
             ))}
             </RNView>
             </Card>

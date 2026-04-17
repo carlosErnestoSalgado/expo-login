@@ -1,5 +1,7 @@
 // ─── CATEGORÍAS ────────────────────────────────────────────────────────────────
 
+import { Float } from "react-native/Libraries/Types/CodegenTypes";
+
 export type CategoriaComun =
   | 'Alquiler'
   | 'Supermercado'
@@ -32,6 +34,7 @@ export interface GastoComun {
   monto: number;
   quienPago: string | null; // null = gasto compartido sin pagador específico
   fecha?: string;           // ISO date string, opcional
+  deudas: DeudaMiembro[];  // Se guardara el MiembroDeuda de cada miebro lo que debe a este gasto 
 }
 
 export interface GastoPersonal {
@@ -128,6 +131,8 @@ export interface MiembroGrupo {
   nombre: string;       // "Carlos", "Camila"
   salario: number;
   metaAhorroIndividual: number;
+  porcentaje?: Float;   // Porcentaje de lo que debe aportar el miembro a los gastpos del grupo si es esGastos
+
 }
 
 // ─── RESUMEN CALCULADO (solo lectura, derivado del store) ───────────────────
@@ -152,4 +157,22 @@ export interface Member {
     nombre: string | undefined;
     salario: number | undefined;
     metaAhorroIndividual: number;
+}
+
+export interface BalanceMiembro {
+  userId: string;
+  nombre: string;
+  balance: number; // positivo = le deben, negativo = debe
+}
+
+
+
+
+// Tipo de dato para identificar las deudas que sera un array en 
+// Gastos paara identificar lo que debe cada miembro
+// del grupo al gasto realizado
+export interface DeudaMiembro {
+  user_id: string;
+  debe: number;   // MiembroGrupo.porcentaje * GastoComun.monto
+  deudaMiembro: boolean;
 }
