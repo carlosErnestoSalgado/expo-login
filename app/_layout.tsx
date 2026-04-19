@@ -65,6 +65,8 @@ function RootLayoutNav() {
       <Stack>
         <Stack.Protected guard={isLogged}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="ViewerGroup" />
+          <Stack.Screen name="GastosScreen" />
         </Stack.Protected>
         <Stack.Protected guard={!isLogged}>
           <Stack.Screen name="sigin" options={{ headerShown: false }} />

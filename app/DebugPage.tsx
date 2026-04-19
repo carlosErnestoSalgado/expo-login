@@ -24,17 +24,20 @@ export default function DebugPage() {
   const handleDebug = async () => {
     const auth = await AsyncStorage.getItem('auth-storage');
     showCode("Auth Store State", JSON.parse(auth ?? '{}'));
+    console.log(auth)
   };
 
   const handleShowRegisteredUsers = async () => {
     const users = await AsyncStorage.getItem('@registered_users');
     showCode("Usuarios Registrados", JSON.parse(users ?? '[]'));
+    console.log(users)
   };
 
   const handlwShowGroupsState = async () => {
     const auth = await AsyncStorage.getItem('auth-storage');
     const groups = JSON.parse(auth ?? '{}').state?.groups;
     showCode("Grupos en Store", groups ?? []);
+    console.log(groups);
   };
 
   const handleShowSesionedUsers = async () => {

@@ -34,7 +34,7 @@ export interface GastoComun {
   monto: number;
   quienPago: string | null; // null = gasto compartido sin pagador específico
   fecha?: string;           // ISO date string, opcional
-  deudas: DeudaMiembro[];  // Se guardara el MiembroDeuda de cada miebro lo que debe a este gasto 
+  deuda: DeudaMiembro[];  // Se guardara el MiembroDeuda de cada miebro lo que debe a este gasto 
 }
 
 export interface GastoPersonal {
@@ -175,4 +175,5 @@ export interface DeudaMiembro {
   user_id: string;
   debe: number;   // MiembroGrupo.porcentaje * GastoComun.monto
   deudaMiembro: boolean;
+  name: string;
 }

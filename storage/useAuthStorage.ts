@@ -101,7 +101,7 @@ interface AuthState {
   // ── Acciones de Gastos Comunes ──
   addGastoComun: (grupoId: string, gasto: GastoComun) => void;
   updateGastoComun: (grupoId: string, mesId: string, gasto: GastoComun) => void;
-  deleteGastoComun: (grupoId: string, mesId: string, gastoId: string) => void;
+  deleteGastoComun: (grupoId: string, gastoId: string) => void;
 
   // ── Acciones de Gastos Personales ──
   //addGastoPersonal: (grupoId: string, mesId: string, persona: 'p1' | 'p2', gasto: GastoPersonal) => void;
@@ -277,11 +277,13 @@ export const useAuthStore = create<AuthState>()(
     })),
   })),
 
-  deleteGastoComun: (grupoId, mesId, gastoId) => set((state) => ({
-    groups: updateMesEnGrupo(state.groups, grupoId, mesId, (m) => ({
-      ...m,
-      gastosComunes: m.gastosComunes.filter(g => g.id !== gastoId),
-    })),
+  deleteGastoComun: (grupoId, gastoId) => set((state) => ({
+    groups: state.groups.map(g =>
+      g.id !== grupoId ? g : {
+        ...g,  
+        gastosDelGrupo: g.gastosDelGrupo.filter(gasto => gasto.id !== gastoId),
+      }
+    )
   })),
 
   addGastoPersonal: (mesId, gasto) => set((state) => ({

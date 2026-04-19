@@ -5,23 +5,21 @@ import {
 } from 'react-native';
 import { useAuthStore } from '@/storage/useAuthStorage';
 import { useColorScheme } from '@/components/useColorScheme';
-import { Text, View } from '@/components/Themed';
+import { Text } from '@/components/Themed';
 import ModalGastoPersonal from '@/components/ModalPersonal';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Componentes
 import Card from '@/components/card';
 import SectionTitle from '@/components/sectiontitle';
 import StatRow from '@/components/statrow';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+const fmt = (n: number) => Math.round(n).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
 
-const fmt = (n: number) => '$' + Math.round(n).toLocaleString('es-CL');
-const pct = (current: number, goal: number) =>
-  goal > 0 ? Math.min(100, Math.round((current / goal) * 100)) : 0;
-
+function parseMonto(n: number | string | undefined): number {
+  return Number(String(n ?? 0).replace(/\./g, ''));
+}
 
 function ProgressBar({ percent }: { percent: number }) {
   const color = percent >= 100 ? '#34C759' : percent >= 50 ? '#007AFF' : '#FF9500';
@@ -32,28 +30,66 @@ function ProgressBar({ percent }: { percent: number }) {
   );
 }
 
-// ─── Pantalla principal ───────────────────────────────────────────────────────
+const CATEGORIA_EMOJI: Record<string, string> = {
+  Alquiler: '🏠', Supermercado: '🛒', Servicios: '⚡', Ocio: '🎉',
+  Gimnasio: '💪', Transporte: '🚗', Salud: '🏥', Mascota: '🐾',
+  Electrodomésticos: '🔌', Ropa: '👕', Familia: '👨‍👩‍👧', 'Comida personal': '🍔',
+  Suscripciones: '📱', 'Cuidado personal': '💆', Educacion: '📚',
+  Entretenimiento: '🎬', 'Ahorro individual': '💰', Otros: '💰',
+};
 
 export default function ProfileScreen() {
-  const isDark  = useColorScheme() === 'dark';
-  const router  = useRouter();
+  const isDark = useColorScheme() === 'dark';
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
 
-  const user    = useAuthStore((s) => s.user);
-  
-  const logout  = useAuthStore((s) => s.logout);
+  const user = useAuthStore((s) => s.user);
+  // ✅ También válido si getGroupByUser existe en el store
+  const getGroup = useAuthStore((s) => s.getGroupByUser);
+  const groups = getGroup() ?? [];
 
   const [modalVisible, setModalVisible] = useState(false);
 
-  const salario      = user?.salario ?? 0;
+  const salario = user?.salario ?? 0;
   const gastosPersonales = user?.gastosPersonales ?? [];
-  const totalGastado = gastosPersonales.reduce((s, g) => s + g.monto, 0);
-  const meta         = 0; // conectar cuando tengas el miembro del grupo
-  const saldo        = salario - totalGastado;
-  const progreso     = pct(saldo, meta);
-  const saldoColor   = saldo >= 0 ? '#34C759' : '#FF3B30';
 
-  const getGroup = useAuthStore((s) => s.getGroupByUser)
-  const groups   = getGroup()
+  // ── Gastos personales ──────────────────────────────────────────────────────
+  const totalGastadoPersonal = gastosPersonales.reduce((s, g) => s + parseMonto(g.monto), 0);
+
+  // ── Gastos en grupos (lo que YO debo) ─────────────────────────────────────
+  const gastosPorGrupo: { grupoNombre: string; monto: number; meDeben: number }[] = [];
+  let totalYoDebEnGrupos = 0;
+  let totalMeDebenEnGrupos = 0;
+
+  groups.forEach((group) => {
+    let yoDebo = 0;
+    let meDeben = 0;
+    const miembrosMap: Record<string, string> = {};
+    group.miembros.forEach((m) => { miembrosMap[m.userId] = m.nombre; });
+
+    (group.gastosDelGrupo ?? []).forEach((gasto) => {
+      const montoGasto = parseMonto(gasto.monto);
+      (gasto.deuda ?? []).forEach((deuda) => {
+        const montoReal = Number(deuda.debe) * montoGasto;
+        if (deuda.user_id === user?.id && deuda.deudaMiembro) {
+          yoDebo += montoReal;
+        }
+        if (gasto.quienPago === user?.id && deuda.user_id !== user?.id && deuda.deudaMiembro) {
+          meDeben += montoReal;
+        }
+      });
+    });
+
+    totalYoDebEnGrupos += yoDebo;
+    totalMeDebenEnGrupos += meDeben;
+    if (yoDebo > 0 || meDeben > 0) {
+      gastosPorGrupo.push({ grupoNombre: group.nombre, monto: yoDebo, meDeben });
+    }
+  });
+
+  const totalGastadoReal = totalGastadoPersonal + totalYoDebEnGrupos;
+  const saldo = salario - totalGastadoReal + totalMeDebenEnGrupos;
+  const saldoColor = saldo >= 0 ? '#34C759' : '#FF3B30';
 
   const iniciales = user?.name
     ?.split(' ')
@@ -62,13 +98,22 @@ export default function ProfileScreen() {
     .join('')
     .toUpperCase() ?? '?';
 
+  const colors = {
+    bg: isDark ? '#121212' : '#F5F7FA',
+    card: isDark ? '#1C1C1E' : '#FFFFFF',
+    cardBorder: isDark ? '#2C2C2E' : '#F0F0F0',
+    primary: isDark ? '#FFFFFF' : '#1A1A1A',
+    label: isDark ? '#8E8E93' : '#8E8E93',
+    border: isDark ? '#2C2C2E' : '#EFEFEF',
+  };
+
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: isDark ? '#121212' : '#F5F7FA' }}
-      contentContainerStyle={styles.scroll}
+      style={{ flex: 1, backgroundColor: colors.bg }}
+      contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}
       showsVerticalScrollIndicator={false}
     >
-      {/* ── Header / Avatar ───────────────────────────────────────────── */}
+      {/* ── Avatar ────────────────────────────────────────────────────────── */}
       <RNView style={styles.header}>
         {user?.foto ? (
           <Image source={{ uri: user.foto }} style={styles.avatar} />
@@ -83,63 +128,89 @@ export default function ProfileScreen() {
         <Text style={styles.userEmail} lightColor="#888" darkColor="#666">
           {user?.email ?? ''}
         </Text>
-        
       </RNView>
 
-      {/* ── Finanzas del mes ──────────────────────────────────────────── */}
-      <SectionTitle text="Finanzas del mes" />
+      {/* ── Resumen financiero ────────────────────────────────────────────── */}
+      <SectionTitle text="Resumen del mes" />
       <Card>
-        <StatRow label="Salario mensual"   value={fmt(salario)} />
+        <StatRow label="Salario mensual" value={fmt(salario)} />
         <RNView style={styles.divider} />
-        <StatRow label="Total gastado"     value={fmt(totalGastado)} valueColor="#FF9500" />
+        <StatRow label="Gastos personales" value={fmt(totalGastadoPersonal)} valueColor="#FF9500" />
         <RNView style={styles.divider} />
-        <StatRow label="Saldo restante"    value={fmt(saldo)}        valueColor={saldoColor} />
+        <StatRow label="Saldo estimado" value={fmt(saldo)} valueColor={saldoColor} />
       </Card>
 
-      {/* ── Meta de ahorro ────────────────────────────────────────────── */}
-      {meta > 0 && (
-        <>
-          <SectionTitle text="Meta de ahorro individual" />
-          <Card>
-            <RNView style={styles.metaHeader}>
-              <Text style={styles.metaPct} lightColor="#1A1A1A" darkColor="#FFF">
-                {progreso}%
-              </Text>
-              <Text style={styles.metaValues} lightColor="#888" darkColor="#666">
-                {fmt(saldo)} / {fmt(meta)}
-              </Text>
+  {/* ── Desglose por grupo ────────────────────────────────────────────── */}
+{gastosPorGrupo.length > 0 && (
+  <>
+    <SectionTitle text="Desglose por grupo" />
+    <RNView style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+      {gastosPorGrupo.map((g, i) => {
+        const neto = g.meDeben - g.monto;
+        const netoColor = neto >= 0 ? '#30D158' : '#FF453A';
+        const netoLabel = neto >= 0 ? `Te deben ${fmt(neto)}` : `Debes ${fmt(Math.abs(neto))}`;
+
+        return (
+          <RNView key={i}>
+            <RNView style={styles.grupoRow}>
+              <RNView style={[styles.grupoIconWrapper, { backgroundColor: isDark ? '#2C2C2E' : '#F2F2F7' }]}>
+                <Text style={{ fontSize: 16 }}>🏠</Text>
+              </RNView>
+              <RNView style={{ flex: 1 }}>
+                <Text style={[styles.grupoNombre, { color: colors.primary }]}>{g.grupoNombre}</Text>
+                <RNView style={styles.grupoDetalles}>
+                  <Text style={[styles.netoText, { color: netoColor }]}>Balance Neto: </Text>
+                  <Text style={[styles.netoText, { color: netoColor }]}>
+                  {neto >= 0 ? '+' : ''}{fmt(neto)}
+                </Text>
+                </RNView>
+              </RNView>              
             </RNView>
-            <ProgressBar percent={progreso} />
-            <Text style={styles.metaHint} lightColor="#AAA" darkColor="#555">
-              {progreso >= 100
-                ? '🎉 ¡Meta alcanzada!'
-                : `Te faltan ${fmt(meta - saldo)} para cumplir tu meta.`}
-            </Text>
-          </Card>
+
+            {i < gastosPorGrupo.length - 1 && (
+              <RNView style={[styles.divider, { marginHorizontal: 14 }]} />
+            )}
+          </RNView>
+        );
+      })}
+    </RNView>
+  </>
+)}
+
+      
+
+      {/* ── Grupos ────────────────────────────────────────────────────────── */}
+      {groups.length > 0 && (
+        <>
+          <SectionTitle text="Mis grupos" />
+          <RNView style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            {groups.map((g, i) => (
+              <RNView key={g.id}>
+                <Pressable
+                  style={styles.grupoRow}
+                  onPress={() => router.push({ pathname: '/ViewerGroup', params: { idGroup: g.id } })}
+                >
+                  <RNView style={[styles.grupoIconWrapper, { backgroundColor: isDark ? '#2C2C2E' : '#F2F2F7' }]}>
+                    <Text style={{ fontSize: 16 }}>
+                      {g.nombre.charAt(0).toUpperCase()}
+                    </Text>
+                  </RNView>
+                  <RNView style={{ flex: 1 }}>
+                    <Text style={[styles.grupoNombre, { color: colors.primary }]}>{g.nombre}</Text>
+                    <Text style={[styles.grupoDesc, { color: colors.label }]}>{g.descripcion}</Text>
+                  </RNView>
+                  <FontAwesome name="chevron-right" size={12} color={colors.label} />
+                </Pressable>
+                {i < groups.length - 1 && (
+                  <RNView style={[styles.divider, { marginHorizontal: 14 }]} />
+                )}
+              </RNView>
+            ))}
+          </RNView>
         </>
       )}
 
-      {/* Grupos a los que pertenece */ }
-      <SectionTitle text="Grupos a los que pertenece" />
-      <Card>
-        <RNView style={styles.containerGroups}>
-          {groups ? (
-            groups.map((g, index) => (
-              <RNView key={index}>
-                <Text>{g.nombre}</Text>
-                <RNView style={styles.groupBadge}>
-                  <Text style={styles.groupBadgeText}>
-                    🏠 {g.descripcion}
-                  </Text>
-                </RNView>
-              </RNView>
-            ))
-          ) : null}
-        </RNView>
-      </Card>
-
-
-      {/* ── Acciones ──────────────────────────────────────────────────── */}
+      {/* ── Acciones ──────────────────────────────────────────────────────── */}
       <SectionTitle text="Acciones" />
 
       <Pressable
@@ -157,22 +228,14 @@ export default function ProfileScreen() {
         <FontAwesome name="list" size={16} color="#007AFF" />
         <Text style={[styles.ctaBtnText, { color: '#007AFF' }]}>Ver mis gastos</Text>
       </Pressable>
-
-      {/* ── Debug ─────────────────────────────────────────────────────── */}
       <Pressable
-        style={({ pressed }) => [styles.debugBtn, pressed && { opacity: 0.5 }]}
+        style={({ pressed }) => [styles.ctaBtn, styles.ctaBtnOutline, pressed && styles.ctaPressed]}
         onPress={() => router.push('/DebugPage')}
       >
-        <FontAwesome name="bug" size={12} color="#8E8E93" />
-        <Text style={styles.debugText} lightColor="#8E8E93" darkColor="#555">
-          Ir a paágina de Debug
-        </Text>
+        <FontAwesome name="bug" size={16} color="#ff0000" />
+        <Text style={[styles.ctaBtnText, { color: '#ff0000' }]}>Debug</Text>
       </Pressable>
-   
 
-
-
-      {/* ── Modal gasto personal ──────────────────────────────────────── */}
       <ModalGastoPersonal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
@@ -181,39 +244,47 @@ export default function ProfileScreen() {
   );
 }
 
-// ─── Estilos ──────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
-  scroll:         { padding: 20, paddingBottom: 48 },
-
-  header:         { alignItems: 'center', marginBottom: 32, marginTop: 12 },
-  avatar:         { width: 90, height: 90, borderRadius: 45, marginBottom: 12 },
-  avatarFallback: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#007AFF', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  avatarText:     { color: '#FFF', fontSize: 32, fontWeight: '800' },
-  userName:       { fontSize: 24, fontWeight: '800', marginBottom: 4 },
-  userEmail:      { fontSize: 14, marginBottom: 10 },
-  groupBadge:     { backgroundColor: '#E8F4FF', paddingHorizontal: 14, paddingVertical: 4, borderRadius: 20 },
-  groupBadgeText: { color: '#007AFF', fontWeight: '600', fontSize: 13 },
-
-  card: {
-    borderRadius: 18, padding: 18, marginBottom: 12,
-    ...Platform.select({
-      ios:     { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
-      android: { elevation: 3 },
-    }),
+  scroll: { padding: 20, paddingBottom: 48 },
+  header: { alignItems: 'center', marginBottom: 28 },
+  avatar: { width: 90, height: 90, borderRadius: 45, marginBottom: 12 },
+  avatarFallback: {
+    width: 90, height: 90, borderRadius: 45,
+    backgroundColor: '#007AFF', justifyContent: 'center', alignItems: 'center', marginBottom: 12,
   },
-  sectionTitle:   { fontSize: 11, fontWeight: '700', letterSpacing: 1, marginBottom: 8, marginLeft: 4 },
-  statRow:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },
-  statLabel:      { fontSize: 15 },
-  statValue:      { fontSize: 15, fontWeight: '700' },
-  divider:        { height: 1, backgroundColor: '#F0F0F0' },
+  avatarText: { color: '#FFF', fontSize: 32, fontWeight: '800' },
+  userName: { fontSize: 24, fontWeight: '800', marginBottom: 4 },
+  userEmail: { fontSize: 14, marginBottom: 10 },
 
-  metaHeader:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 },
-  metaPct:        { fontSize: 28, fontWeight: '800' },
-  metaValues:     { fontSize: 13 },
-  progressTrack:  { height: 10, backgroundColor: '#F0F0F0', borderRadius: 8, overflow: 'hidden', marginBottom: 10 },
-  progressFill:   { height: 10, borderRadius: 8 },
-  metaHint:       { fontSize: 13 },
+  card: { borderRadius: 14, borderWidth: 0.5, overflow: 'hidden', marginBottom: 12 },
+
+  divider: { height: 0.5, backgroundColor: '#F0F0F0' },
+
+  // Grupos
+  grupoRow: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
+  grupoIconWrapper: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  grupoNombre: { fontSize: 15, fontWeight: '600' },
+  grupoDesc: { fontSize: 12, marginTop: 1 },
+  grupoDetalles: { flexDirection: 'row', gap: 10, marginTop: 2 },
+  grupoDebes: { fontSize: 12, fontWeight: '600', color: '#FF453A' },
+  grupoTeDeben: { fontSize: 12, fontWeight: '600', color: '#30D158' },
+
+  // Gastos personales
+  gastoPersonalRow: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
+  gastoIcon: { width: 38, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  gastoDesc: { fontSize: 14, fontWeight: '600' },
+  gastoCat: { fontSize: 12, marginTop: 1 },
+  gastoMonto: { fontSize: 14, fontWeight: '700' },
+
+  // Empty
+  emptyState: {
+    borderRadius: 14, borderWidth: 0.5, padding: 32,
+    alignItems: 'center', gap: 8, marginBottom: 12,
+  },
+  emptyText: { fontSize: 14, fontWeight: '600' },
+
+  progressTrack: { height: 10, backgroundColor: '#F0F0F0', borderRadius: 8, overflow: 'hidden', marginBottom: 10 },
+  progressFill: { height: 10, borderRadius: 8 },
 
   ctaBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
@@ -221,14 +292,17 @@ const styles = StyleSheet.create({
     marginTop: 8, marginBottom: 12, elevation: 4,
     shadowColor: '#007AFF', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8,
   },
-  ctaBtnOutline:  { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: '#007AFF', elevation: 0, shadowOpacity: 0 },
-  ctaPressed:     { transform: [{ scale: 0.97 }], opacity: 0.85 },
-  ctaBtnText:     { color: '#FFF', fontSize: 16, fontWeight: '800' },
+  ctaBtnOutline: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: '#007AFF', elevation: 0, shadowOpacity: 0 },
+  ctaPressed: { transform: [{ scale: 0.97 }], opacity: 0.85 },
+  ctaBtnText: { color: '#FFF', fontSize: 16, fontWeight: '800' },
 
-  debugBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, marginBottom: 8 },
-  debugText:      { fontSize: 12 },
-
-  logoutBtn:      { alignItems: 'center', paddingVertical: 12, marginTop: 4 },
-  logoutText:     { color: '#FF3B30', fontSize: 15, fontWeight: '600' },
-  containerGroups: {flexDirection: "column", gap: 4, justifyContent: "space-between"}
+  netoBadge: {
+  alignItems: 'center',
+  paddingHorizontal: 10,
+  paddingVertical: 6,
+  borderRadius: 10,
+  minWidth: 70,
+},
+netoText: { fontSize: 13, fontWeight: '800' },
+netoLabel: { fontSize: 10, fontWeight: '600', letterSpacing: 0.5 },
 });

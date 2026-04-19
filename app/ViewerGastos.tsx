@@ -1,187 +1,268 @@
-import { use, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Pressable, View as RNView} from 'react-native';
-import { View, Text } from '../components/Themed';
+import { useState } from 'react';
+import { ScrollView, StyleSheet, Pressable, View as RNView, useColorScheme } from 'react-native';
+import { Text } from '../components/Themed';
 import { useAuthStore } from '@/storage/useAuthStorage';
 import { GastoPersonal } from '@/storage/types';
 import ModalGastoPersonal from '@/components/ModalPersonal';
-import { useColorScheme } from 'react-native';
-import Card from '@/components/card';
 import { FontAwesome } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const CATEGORIA_EMOJI: Record<string, string> = {
+  Ropa: '👕', Familia: '👨‍👩‍👧', 'Comida personal': '🍔',
+  Suscripciones: '📱', 'Cuidado personal': '💆', Educacion: '📚',
+  Entretenimiento: '🎬', 'Ahorro individual': '💰', Otros: '💰',
+};
+
+function parseMonto(n: number | string | undefined): number {
+  return Number(String(n ?? 0).replace(/\./g, ''));
+}
+
+function fmt(n: number): string {
+  return Number(n).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
+}
 
 export default function ViewerGastos() {
-  // Leer directo del store — ya está sincronizado con AsyncStorage via persist
   const gastosPersonales = useAuthStore((s) => s.user?.gastosPersonales ?? []);
-  const deleteGasto      = useAuthStore((s) => s.deleteGastoPersonal)
-  
+  const deleteGasto = useAuthStore((s) => s.deleteGastoPersonal);
+
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedGastoId, setSelectedGastoId] = useState<string | null>(null);
-  
-  // Visibilidad de botones editar y eliminar
-  const [visible, setVisible] = useState(false);
-  const [visibleId, setVisibleId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-   
-   const handleEliminar = (id: string) => {
-    // ✅ Llama directo a la acción del store, sin hooks dentro de funciones
-    console.log("Eliminado gasto")
-    deleteGasto(id);
+  const insets = useSafeAreaInsets();
+
+  const totalGastado = gastosPersonales.reduce((s, g) => s + parseMonto(g.monto), 0);
+
+  const colors = {
+    bg: isDark ? '#121212' : '#F5F7FA',
+    card: isDark ? '#1C1C1E' : '#FFFFFF',
+    cardBorder: isDark ? '#2C2C2E' : '#F0F0F0',
+    primary: isDark ? '#FFFFFF' : '#1A1A1A',
+    label: isDark ? '#8E8E93' : '#8E8E93',
+    border: isDark ? '#2C2C2E' : '#EFEFEF',
+    expandBg: isDark ? '#252528' : '#F8F9FB',
   };
+
+  // Agrupar por categoría para el resumen
+  const porCategoria: Record<string, number> = {};
+  gastosPersonales.forEach((g) => {
+    const cat = g.categoria ?? 'Otros';
+    porCategoria[cat] = (porCategoria[cat] ?? 0) + parseMonto(g.monto);
+  });
+
   return (
+    <RNView style={[styles.container, { backgroundColor: colors.bg }]}>
       <ScrollView
-        style={{ flex: 1, backgroundColor: isDark ? '#121212' : '#F5F7FA' }}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 16 }]}
         showsVerticalScrollIndicator={false}
       >
-      <View style={styles.container}>
-        <Text style={styles.titulo}>Mis Gastos</Text>
+        {/* ── Título ── */}
+        <Text style={[styles.titulo, { color: colors.primary }]}>Mis Gastos</Text>
 
-        {gastosPersonales.length === 0 ? (
-           <Card>
-            <RNView style={styles.emptyState}>
-              <FontAwesome
-                name="money"
-                size={40}
-                color={isDark ? '#3A3A3C' : '#DDD'}
-              />
-              <Text style={styles.emptyTitle} lightColor="#AAA" darkColor="#555">
-                Aún no tienes gastos
-              </Text>
-              <Text style={styles.emptySubtitle} lightColor="#BBB" darkColor="#444">
-                Puedes ingresar un gasto desde la pantalla Personal
-              </Text>
+        {/* ── Resumen total ── */}
+        {gastosPersonales.length > 0 && (
+          <RNView style={[styles.summaryCard, { backgroundColor: isDark ? '#1C2A3A' : '#EEF4FF' }]}>
+            <RNView style={styles.summaryItem}>
+              <Text style={[styles.summaryLabel, { color: '#3A7BFF' }]}>Total gastado</Text>
+              <Text style={[styles.summaryValue, { color: '#3A7BFF' }]}>{fmt(totalGastado)}</Text>
             </RNView>
-            </Card>
-        ) : (
-          gastosPersonales.map((gasto: GastoPersonal) => (
- 
-          <Pressable onPress={()=> {
-             setVisibleId(visibleId === gasto.id ? null : gasto.id) // toggle
-          }}>
-
-
-
-           
-          <Card>
-
-              <View style={[{ 
-                flexDirection: "column", 
-                gap: 1, 
-                minWidth: 0,       // ← permite que se encoja correctamente
-                backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF' 
-              }]}>
-                    {/* Columna de texto — flex:1 + minWidth:0 es la clave */}
-                    <View style={[{ 
-                      flexDirection: "row", 
-                      gap: 4, 
-                      flex: 1,           // ← ocupa el espacio disponible
-                      minWidth: 0,
-                      backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF' 
-                    }]}>
-                      <View style={[{ 
-                      flexDirection: "column", 
-                      gap: 4, 
-                      flex: 1,           // ← ocupa el espacio disponible
-                      minWidth: 0,
-                      backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF' 
-                    }]}>
-                        <Text 
-                          style={styles.desc} 
-                          numberOfLines={1}         // ← corta en 1 línea
-                          ellipsizeMode="tail"      // ← agrega "..."
-                        >
-                          {gasto.descripcion}
-                        </Text>
-                        <Text 
-                          style={styles.categoria}
-                          numberOfLines={1}
-                          ellipsizeMode="tail"
-                        >
-                          {gasto.categoria}
-                        </Text>
-                      </View>
-                      {/* Monto — flexShrink:0 para que no se comprima */}
-                      <Text style={[styles.monto, { flexShrink: 0, marginHorizontal: 8 }]}>
-                        ${gasto.monto.toLocaleString('es-CL')}
-                      </Text>
-                </View>
-         
-          <RNView style={styles.divider} />
-          {/* Botones — flexShrink:0 para que no se compriman */}
-          <View 
-            style={[styles.container_button, { flexShrink: 0 }, { display: visibleId === gasto.id ? 'flex' : 'none' }]} 
-            lightColor='transparent' 
-            darkColor='transparent'
-          >
-            <Pressable onPress={() => {
-              setSelectedGastoId(gasto.id);
-              setModalVisible(true);
-            }} style={styles.button_edit}>
-              <Text lightColor='#fff'>Editar</Text>
-            </Pressable>
-            <Pressable onPress={() => handleEliminar(gasto.id)} style={styles.button_delete}>
-              <Text lightColor='#fff'>Eliminar</Text>
-            </Pressable>
-          </View>
-          </View>
-          </Card> 
-          </Pressable>
-
-          ))
+            <RNView style={[styles.summaryDivider, { backgroundColor: isDark ? '#1A3A5A' : '#C8D8FF' }]} />
+            <RNView style={styles.summaryItem}>
+              <Text style={[styles.summaryLabel, { color: '#3A7BFF' }]}>Registros</Text>
+              <Text style={[styles.summaryValue, { color: '#3A7BFF' }]}>{gastosPersonales.length}</Text>
+            </RNView>
+          </RNView>
         )}
-        
-        <ModalGastoPersonal
-          visible={modalVisible}
-          onClose={() => { setModalVisible(false); setSelectedGastoId(null); }}
-          idGasto={selectedGastoId}
-        />
-        
-        
-      </View>
-    </ScrollView>
+
+        {/* ── Lista de gastos ── */}
+        {gastosPersonales.length === 0 ? (
+          <RNView style={[styles.emptyState, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <RNView style={[styles.emptyIconWrapper, { backgroundColor: isDark ? '#2C2C2E' : '#F2F2F7' }]}>
+              <FontAwesome name="money" size={28} color={isDark ? '#636366' : '#AEAEB2'} />
+            </RNView>
+            <Text style={[styles.emptyTitle, { color: colors.primary }]}>Sin gastos aún</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.label }]}>
+              Agrega gastos desde la pantalla Personal
+            </Text>
+          </RNView>
+        ) : (
+          <RNView style={styles.lista}>
+            {[...gastosPersonales].reverse().map((gasto: GastoPersonal) => {
+              const isExpanded = expandedId === gasto.id;
+              return (
+                <RNView
+                  key={gasto.id}
+                  style={[styles.gastoCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+                >
+                  {/* ── Fila principal ── */}
+                  <Pressable
+                    style={styles.gastoMainRow}
+                    onPress={() => setExpandedId(isExpanded ? null : gasto.id)}
+                  >
+                    <RNView style={[styles.gastoIcon, { backgroundColor: isDark ? '#2C2C2E' : '#F2F2F7' }]}>
+                      <Text style={styles.gastoEmoji}>
+                        {CATEGORIA_EMOJI[gasto.categoria] ?? '💰'}
+                      </Text>
+                    </RNView>
+
+                    <RNView style={styles.gastoInfo}>
+                      <Text style={[styles.gastoDesc, { color: colors.primary }]} numberOfLines={1}>
+                        {gasto.descripcion}
+                      </Text>
+                      <Text style={[styles.gastoCat, { color: colors.label }]}>
+                        {gasto.categoria}
+                      </Text>
+                    </RNView>
+
+                    <RNView style={styles.gastoRight}>
+                      <Text style={[styles.gastoMonto, { color: '#FF453A' }]}>
+                        −{fmt(parseMonto(gasto.monto))}
+                      </Text>
+                      <FontAwesome
+                        name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                        size={11}
+                        color={colors.label}
+                        style={{ marginTop: 4 }}
+                      />
+                    </RNView>
+                  </Pressable>
+
+                  {/* ── Panel expandido con acciones ── */}
+                  {isExpanded && (
+                    <RNView style={[styles.expandedPanel, { backgroundColor: colors.expandBg, borderTopColor: colors.border }]}>
+                      <Pressable
+                        style={[styles.accionBtn, { backgroundColor: isDark ? '#1A2A3A' : '#EEF4FF' }]}
+                        onPress={() => {
+                          setSelectedGastoId(gasto.id);
+                          setModalVisible(true);
+                          setExpandedId(null);
+                        }}
+                      >
+                        <FontAwesome name="pencil" size={13} color="#3A7BFF" />
+                        <Text style={styles.accionBtnTextEdit}>Editar</Text>
+                      </Pressable>
+
+                      <Pressable
+                        style={[styles.accionBtn, { backgroundColor: isDark ? '#3A1515' : '#FFF0F0' }]}
+                        onPress={() => {
+                          deleteGasto(gasto.id);
+                          setExpandedId(null);
+                        }}
+                      >
+                        <FontAwesome name="trash" size={13} color="#FF453A" />
+                        <Text style={styles.accionBtnTextDelete}>Eliminar</Text>
+                      </Pressable>
+                    </RNView>
+                  )}
+                </RNView>
+              );
+            })}
+          </RNView>
+        )}
+
+        {/* ── Resumen por categoría ── */}
+        {Object.keys(porCategoria).length > 0 && (
+          <>
+            <Text style={[styles.sectionTitle, { color: colors.label }]}>POR CATEGORÍA</Text>
+            <RNView style={[styles.catCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+              {Object.entries(porCategoria)
+                .sort((a, b) => b[1] - a[1])
+                .map(([cat, total], i, arr) => (
+                  <RNView key={cat}>
+                    <RNView style={styles.catRow}>
+                      <Text style={styles.catEmoji}>{CATEGORIA_EMOJI[cat] ?? '💰'}</Text>
+                      <Text style={[styles.catNombre, { color: colors.primary }]}>{cat}</Text>
+                      <Text style={[styles.catMonto, { color: '#FF453A' }]}>−{fmt(total)}</Text>
+                    </RNView>
+                    {i < arr.length - 1 && (
+                      <RNView style={[styles.divider, { backgroundColor: colors.border }]} />
+                    )}
+                  </RNView>
+                ))}
+            </RNView>
+          </>
+        )}
+
+      </ScrollView>
+
+      <ModalGastoPersonal
+        visible={modalVisible}
+        onClose={() => { setModalVisible(false); setSelectedGastoId(null); }}
+        idGasto={selectedGastoId}
+      />
+    </RNView>
   );
 }
 
 const styles = StyleSheet.create({
-  container:  { flex: 1, padding: 20 },
-  titulo:     { fontSize: 24, fontWeight: '800', marginBottom: 20 },
-  empty:      { fontSize: 15, color: '#888', textAlign: 'center', marginTop: 40 },
-  card: {
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    backgroundColor: '#F5F7FA',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  desc:       { fontSize: 15, fontWeight: '600', flex: 1 },
-  categoria:  { fontSize: 13, color: '#888' },
-  monto:      { fontSize: 15, fontWeight: '700', color: '#007AFF' },
-  container_button: {
-    flexDirection: 'row',
-    gap: 10,
-    marginLeft: 20,
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  button_delete: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: '#ff0000e1',
-  },
-  button_edit: { 
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: '#ff9900',
-  },
-  divider: { height: 1, backgroundColor: '#F0F0F0', marginBottom: 12 },
-  
-  // Empty state
-  emptyState: { alignItems: 'center', paddingVertical: 28, gap: 10 },
-  emptyTitle: { fontSize: 16, fontWeight: '700' },
-  emptySubtitle: { fontSize: 13, textAlign: 'center' },
+  container: { flex: 1 },
+  scroll: { padding: 16, paddingBottom: 48 },
 
+  titulo: { fontSize: 28, fontWeight: '800', marginBottom: 20 },
+
+  // Resumen
+  summaryCard: {
+    flexDirection: 'row', borderRadius: 16, padding: 16,
+    marginBottom: 20, alignItems: 'center',
+  },
+  summaryItem: { flex: 1, alignItems: 'center' },
+  summaryLabel: { fontSize: 12, fontWeight: '600', marginBottom: 4, letterSpacing: 0.3 },
+  summaryValue: { fontSize: 20, fontWeight: '800' },
+  summaryDivider: { width: 0.5, height: 36, marginHorizontal: 8 },
+
+  // Section title
+  sectionTitle: {
+    fontSize: 11, fontWeight: '700', letterSpacing: 0.8,
+    marginBottom: 8, marginTop: 20, marginLeft: 4,
+  },
+
+  // Lista
+  lista: { gap: 10 },
+
+  // Tarjeta gasto
+  gastoCard: { borderRadius: 14, borderWidth: 0.5, overflow: 'hidden' },
+  gastoMainRow: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
+  gastoIcon: { width: 42, height: 42, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  gastoEmoji: { fontSize: 20 },
+  gastoInfo: { flex: 1, gap: 3 },
+  gastoDesc: { fontSize: 15, fontWeight: '600' },
+  gastoCat: { fontSize: 12 },
+  gastoRight: { alignItems: 'flex-end', gap: 4 },
+  gastoMonto: { fontSize: 15, fontWeight: '700' },
+
+  // Panel expandido
+  expandedPanel: {
+    flexDirection: 'row', gap: 10,
+    padding: 12, borderTopWidth: 0.5,
+  },
+  accionBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', gap: 6,
+    paddingVertical: 10, borderRadius: 10,
+  },
+  accionBtnTextEdit: { color: '#3A7BFF', fontSize: 13, fontWeight: '600' },
+  accionBtnTextDelete: { color: '#FF453A', fontSize: 13, fontWeight: '600' },
+
+  // Por categoría
+  catCard: { borderRadius: 14, borderWidth: 0.5, overflow: 'hidden' },
+  catRow: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 10 },
+  catEmoji: { fontSize: 18 },
+  catNombre: { flex: 1, fontSize: 14, fontWeight: '500' },
+  catMonto: { fontSize: 14, fontWeight: '700' },
+
+  divider: { height: 0.5, marginHorizontal: 14 },
+
+  // Empty
+  emptyState: {
+    borderRadius: 14, borderWidth: 0.5, padding: 40,
+    alignItems: 'center', gap: 12, marginTop: 8,
+  },
+  emptyIconWrapper: {
+    width: 60, height: 60, borderRadius: 18,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  emptyTitle: { fontSize: 17, fontWeight: '700' },
+  emptySubtitle: { fontSize: 14, textAlign: 'center' },
 });

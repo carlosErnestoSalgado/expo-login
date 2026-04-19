@@ -10,8 +10,8 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { Text, View } from '@/components/Themed';
 import { showMessage } from 'react-native-flash-message';
 import { CategoriaComun, MiembroGrupo } from '@/storage/types';
-import { DeudaMiembro } from '@/storage/types';
-
+import { DeudaMiembro, User } from '@/storage/types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CATEGORIAS_COMUNES: { label: string; value: CategoriaComun; icon: string }[] = [
   { label: 'Alquiler',          value: 'Alquiler',          icon: 'home'          },
@@ -53,6 +53,7 @@ interface Props {
 export default function ModalGastoComun({ visible, idGrupo, onClose }: Props) {
   const isDark      = useColorScheme() === 'dark';
 
+  
   const addGastoComun = useAuthStore((s) => s.addGastoComun);
 
   const miembros  = useAuthStore((s) => {
@@ -89,6 +90,9 @@ useEffect(() => {
 }, [idGrupo, visible, gastos]); // ← agrega gastos aquí*/
 
 
+
+  const montoNum = Number(monto.replace(/\./g, ''));
+
   const handleMonto = (raw: string) => {
         const digits    = raw.replace(/\D/g, '');
         const formatted = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
@@ -103,7 +107,16 @@ useEffect(() => {
     onClose();
   };
 
-  const handleGuardar = () => {
+  const getNameById = async (userId: string) => {
+    const result = await AsyncStorage.getItem("@registered_users");
+    const registeredUsers: { user_id: string; name: string }[] = JSON.parse(result ?? '[]');
+
+    const user = registeredUsers.find(user => user.id === userId)
+    
+    return user.name
+  };
+
+  const handleGuardar = async() => {
     const error = validate(descripcion, monto, categoria);
     if (error) {
       showMessage({ message: 'Campo inválido', description: error, type: 'warning', backgroundColor: '#f39c12' });
@@ -111,27 +124,36 @@ useEffect(() => {
     }
 
     const mesId = getMesActivoId();
+    
+   // Resolvemos todos los nombres antes de construir el objeto
+    const deudas = await Promise.all(
+      miembros.map(async (m: MiembroGrupo) => {
+        const nombre = await getNameById(m.userId);
+        return {
+          debe: (m.porcentaje ?? 0),
+          deudaMiembro: m.userId !== user?.id,
+          user_id: m.userId,
+          name: nombre,
+        };
+      })
+    );
 
     const newGastoComun = {
-    id: generateGastoId(),
-    descripcion: descripcion,
-    categoria: categoria,
-    monto: monto,
-    quienPago: user?.id,
-    fecha: mesId,
-    deuda: miembros.map((m: MiembroGrupo) => ({   // paréntesis en el tipo y objeto
-        porcentaje: (m.porcentaje ?? 0) * monto,          // era m.debe: * monto
-        deudaMiembro: false,
-        user_id: m.userId                          // userId, no m.id
-    }))
-}
-
+      id: generateGastoId(),
+      descripcion: descripcion,
+      categoria:  categoria,
+      monto: montoNum,
+      quienPago: user?.id,
+      fecha: mesId,
+      deuda: deudas,
+    };
       // ✅ Modo edición — sintaxis correcta
     addGastoComun(idGrupo, newGastoComun)
       showMessage({ message: '¡Gasto agregado!', type: 'success', backgroundColor: '#34C759' });
       handleClose();
     }
    
+    // IVWR3K
  
 
   const bg       = isDark ? '#1C1C1E' : '#FFFFFF';
