@@ -334,7 +334,7 @@ const saldo = salario
         <FontAwesome name="bug" size={16} color="#ff0000" />
         <Text style={[styles.ctaBtnText, { color: '#ff0000' }]}>Debug</Text>
       </Pressable>
-
+      
       <ModalGastoPersonal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}

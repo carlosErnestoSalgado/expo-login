@@ -7,9 +7,10 @@ import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { MiembroGrupo } from "@/storage/types";
 import { useLocalSearchParams } from 'expo-router';
-
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ModalCreateEditGroup from "@/components/ModalCreateEditGroup";
 import ModalGastoComun from "@/components/ModalGastoComun";
+
 
 function getMesActivoId(): string {
   const now = new Date();
@@ -31,7 +32,7 @@ export default function ViewerGroup() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
-
+  const insets = useSafeAreaInsets(); 
   const [visibleModalGasto, setVisibleModalGasto] = useState(false);
   const [modalEditGroup, setModalEditGroup] = useState(false);
 
@@ -91,7 +92,11 @@ export default function ViewerGroup() {
   };
 
   return (
-    <RNView style={[styles.container, { backgroundColor: colors.bg }]}>
+    <RNView style={{
+    flex: 1,
+    backgroundColor: isDark ? '#121212' : '#F5F7FA',
+    paddingTop: insets.top, // 👈 SOLUCIÓN
+  }}>
 
       {/* ── Header con volver ─────────────────────────────────────────────── */}
       <RNView style={[styles.header, { backgroundColor: colors.header, borderBottomColor: colors.border }]}>

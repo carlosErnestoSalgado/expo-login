@@ -18,6 +18,7 @@ import ModalWrapper from '@/components/ModalWrapper';
 import { useRouter } from 'expo-router';
 
 import ModalCreateEditGroup from '@/components/ModalCreateEditGroup';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -29,6 +30,9 @@ function generarCodigo() {
 // ─── Pantalla principal ───────────────────────────────────────────────────────
 
 export default function TabTwoScreen() {
+
+  const insets = useSafeAreaInsets();
+  
   const isDark   = useColorScheme() === 'dark';
   const user     = useAuthStore((s) => s.user);
   const groups   = useAuthStore((s) => s.groups);
@@ -105,7 +109,11 @@ export default function TabTwoScreen() {
   return (
     <>
       <ScrollView
-        style={{ flex: 1, backgroundColor: isDark ? '#121212' : '#F5F7FA' }}
+        style={{
+          flex: 1,
+          backgroundColor: isDark ? '#121212' : '#F5F7FA',
+          paddingTop: insets.top, // 👈 SOLUCIÓN
+        }}
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >

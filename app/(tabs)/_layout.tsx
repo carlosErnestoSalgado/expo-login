@@ -37,6 +37,7 @@ export default function TabLayout() {
           headerRight: () => (
             <LogoutButton />
           ),
+          headerShown: false, // Oculta el header para esta pantalla
         }}
       />
       <Tabs.Screen
@@ -47,6 +48,18 @@ export default function TabLayout() {
                  headerRight: () => (
                   <LogoutButton />
           ),
+          headerShown: false, // Oculta el header para esta pantalla
+        }}
+      />
+      <Tabs.Screen
+        name="BalanceScreen"
+        options={{
+          title: 'Balance Mensual',
+          tabBarIcon: ({ color }) => <TabBarIcon name="bar-chart" color={color} />,
+          headerRight: () => (
+            <LogoutButton />
+          ),
+          headerShown: false, // Oculta el header para esta pantalla
         }}
       />
     </Tabs>

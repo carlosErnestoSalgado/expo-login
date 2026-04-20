@@ -16,9 +16,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAuthStore } from "@/storage/useAuthStorage";
 import { DeudaMiembro, GastoComun, User } from "@/storage/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { SafeAreaView } from "react-native-safe-area-context";
 import ModalGastoComun from "@/components/ModalGastoComun";
-
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -251,7 +250,10 @@ export default function GastosScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const user = useAuthStore((s) => s.user);
+  
 
+  const insets = useSafeAreaInsets();
+   
     // Estado para el modal de edición
   const [modalEditVisible, setModalEditVisible] = useState(false);
   const [gastoEditId, setGastoEditId] = useState<string | null>(null);
@@ -306,7 +308,11 @@ export default function GastosScreen() {
   const netoColor = neto >= 0 ? "#30D158" : "#FF453A";
 
   return (
-    <RNView style={[styles.container, { backgroundColor: colors.bg }]}>
+    <RNView style={{
+    flex: 1,
+    backgroundColor: isDark ? '#121212' : '#F5F7FA',
+    paddingTop: insets.top, // 👈 SOLUCIÓN
+  }}>
       <RNView style={[styles.header, { backgroundColor: colors.header, borderBottomColor: colors.border }]}>
         <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
           <FontAwesome name="chevron-left" size={16} color="#007AFF" />

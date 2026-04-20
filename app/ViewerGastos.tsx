@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Pressable, View as RNView, useColorScheme } from 'react-native';
+import { ScrollView, StyleSheet, Pressable, View as RNView, useColorScheme, Platform } from 'react-native';
 import { Text } from '../components/Themed';
 import { useAuthStore } from '@/storage/useAuthStorage';
 import { GastoPersonal } from '@/storage/types';
 import ModalGastoPersonal from '@/components/ModalPersonal';
 import { FontAwesome } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 const CATEGORIA_EMOJI: Record<string, string> = {
   Ropa: '👕', Familia: '👨‍👩‍👧', 'Comida personal': '🍔',
@@ -33,6 +34,8 @@ export default function ViewerGastos() {
   const isDark = colorScheme === 'dark';
   const insets = useSafeAreaInsets();
 
+  const router = useRouter();
+
   const totalGastado = gastosPersonales.reduce((s, g) => s + parseMonto(g.monto), 0);
 
   const colors = {
@@ -43,6 +46,7 @@ export default function ViewerGastos() {
     label: isDark ? '#8E8E93' : '#8E8E93',
     border: isDark ? '#2C2C2E' : '#EFEFEF',
     expandBg: isDark ? '#252528' : '#F8F9FB',
+    header: isDark ? "#1C1C1E" : "#FFFFFF",
   };
 
   // Agrupar por categoría para el resumen
@@ -53,11 +57,27 @@ export default function ViewerGastos() {
   });
 
   return (
-    <RNView style={[styles.container, { backgroundColor: colors.bg }]}>
+    <RNView style={{
+    flex: 1,
+    backgroundColor: isDark ? '#121212' : '#F5F7FA',
+    paddingTop: insets.top, // 👈 SOLUCIÓN
+  }}>
+    {/* ── Header con volver ─────────────────────────────────────────────── */}
+              <RNView style={[styles.header, { backgroundColor: colors.header, borderBottomColor: colors.border }]}>
+                <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
+                  <FontAwesome name="chevron-left" size={16} color="#007AFF" />
+                  <Text style={styles.backText}>Volver</Text>
+                </Pressable>
+                <Text style={[styles.headerTitle, { color: colors.primary }]} numberOfLines={1}>
+                  Gastos Personales
+                </Text>
+                <RNView style={{ width: 70 }} />
+              </RNView>
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 16 }]}
+        contentContainerStyle={[styles.scroll]}
         showsVerticalScrollIndicator={false}
       >
+         
         {/* ── Título ── */}
         <Text style={[styles.titulo, { color: colors.primary }]}>Mis Gastos</Text>
 
@@ -265,4 +285,18 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { fontSize: 17, fontWeight: '700' },
   emptySubtitle: { fontSize: 14, textAlign: 'center' },
+   // Header
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingTop: Platform.OS === 'ios' ? 56 : 16,
+      paddingBottom: 14,
+      borderBottomWidth: 0.5,
+    },
+    backBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, width: 70 },
+    backText: { color: '#007AFF', fontSize: 15 },
+    headerTitle: { fontSize: 17, fontWeight: '700', flex: 1, textAlign: 'center' },
+  
 });
