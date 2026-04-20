@@ -134,6 +134,7 @@ interface AuthState {
   updatePorcentajeMember: (codigoUnirse: string, totalIncomes: number) => void;
   saldarDeuda: (grupoId: string, gastoId: string, userId: string) => void;            
   saldarTodasDeudas: (grupoId: string, userId: string) => void; 
+  editGastoComun: (grupoId: string, gastoEditado: GastoComun) => void;
   
 }
 
@@ -453,6 +454,16 @@ saldarTodasDeudas: (grupoId, userId) => set((state) => ({
           deuda.user_id === userId ? { ...deuda, deudaMiembro: false } : deuda
         )
       }))
+    }
+  )
+})),
+editGastoComun: (grupoId, gastoEditado) => set((state) => ({
+  groups: state.groups.map(g =>
+    g.id !== grupoId ? g : {
+      ...g,
+      gastosDelGrupo: g.gastosDelGrupo.map(gasto =>
+        gasto.id !== gastoEditado.id ? gasto : gastoEditado
+      )
     }
   )
 })),

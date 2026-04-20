@@ -17,6 +17,9 @@ import { useAuthStore } from "@/storage/useAuthStorage";
 import { DeudaMiembro, GastoComun, User } from "@/storage/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
+import ModalGastoComun from "@/components/ModalGastoComun";
+
+
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
@@ -45,7 +48,7 @@ interface GastoRowProps {
   idGroup: string;       // 👈 nuevo
   onSaldar: (gastoId: string, userId: string) => void;  // 👈 nuevo
 }
-function GastoRowExpandible({ gasto, isDark, miembrosMap, onEliminar, onEditar, userId, idGroup, onSaldar }: GastoRowProps) {
+function GastoRowExpandible({ gasto, isDark, miembrosMap, onEliminar, onEditar, userId, idGroup, onSaldar}: GastoRowProps) {
   const [expandido, setExpandido] = useState(false);
 
   const toggleExpand = () => {
@@ -249,6 +252,10 @@ export default function GastosScreen() {
   const isDark = colorScheme === "dark";
   const user = useAuthStore((s) => s.user);
 
+    // Estado para el modal de edición
+  const [modalEditVisible, setModalEditVisible] = useState(false);
+  const [gastoEditId, setGastoEditId] = useState<string | null>(null);
+  
   const saldarDeuda = useAuthStore((s) => s.saldarDeuda);
   const saldarTodasDeudas = useAuthStore((s) => s.saldarTodasDeudas);
 
@@ -365,7 +372,9 @@ export default function GastosScreen() {
                 )
               }
               onEliminar={() => deleteGastoComun(idGroup, gasto.id)}
-              onEditar={() => Alert.alert("Editar", `Editar "${gasto.descripcion}"`)}
+              onEditar={() => {
+                setGastoEditId(gasto.id);
+                setModalEditVisible(true);}}
             />
           ))}
           </RNView>
@@ -453,6 +462,15 @@ export default function GastosScreen() {
           </RNView>
         )}
       </ScrollView>
+      <ModalGastoComun
+          visible={modalEditVisible}
+          idGrupo={idGroup}
+          idGasto={gastoEditId}
+          onClose={() => {
+            setModalEditVisible(false);
+            setGastoEditId(null);
+          }}
+        />
     </RNView>
   );
 }

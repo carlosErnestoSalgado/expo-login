@@ -9,8 +9,7 @@ import { useAuthStore } from '@/storage/useAuthStorage';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Text, View } from '@/components/Themed';
 import { showMessage } from 'react-native-flash-message';
-import { CategoriaComun, MiembroGrupo } from '@/storage/types';
-import { DeudaMiembro, User } from '@/storage/types';
+import { CategoriaComun, GastoComun, MiembroGrupo } from '@/storage/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CATEGORIAS_COMUNES: { label: string; value: CategoriaComun; icon: string }[] = [
@@ -39,65 +38,71 @@ function validate(desc: string, monto: string, categoria: CategoriaComun | null)
   if (!monto || isNaN(n) || n <= 0) return 'Ingresa un monto válido.';
   return null;
 }
+
 function generateGastoId(): string {
   const timestamp = Date.now().toString(36);
   const random = Math.random().toString(36).substring(2, 7);
   return `gasto-${timestamp}-${random}`;
 }
+
+function formatMonto(n: number): string {
+  return n.toLocaleString('es-CL');
+}
+
 interface Props {
   visible: boolean;
   idGrupo: string;
   onClose: () => void;
+  idGasto?: string | null; // si viene → modo edición
 }
 
-export default function ModalGastoComun({ visible, idGrupo, onClose }: Props) {
-  const isDark      = useColorScheme() === 'dark';
+export default function ModalGastoComun({ visible, idGrupo, onClose, idGasto }: Props) {
+  const isDark = useColorScheme() === 'dark';
+  const modoEdicion = !!idGasto;
 
-  
-  const addGastoComun = useAuthStore((s) => s.addGastoComun);
+  const addGastoComun    = useAuthStore((s) => s.addGastoComun);
+  const editGastoComun   = useAuthStore((s) => s.editGastoComun); // acción de edición en el store
+  const user             = useAuthStore((s) => s.user);
 
-  const miembros  = useAuthStore((s) => {
-        return s.groups
-        .find(g => g.id == idGrupo)
-        ?.miembros ?? [] 
-    })
-  
-  const user = useAuthStore((s)=> s.user)
+  const miembros = useAuthStore((s) =>
+    s.groups.find(g => g.id === idGrupo)?.miembros ?? []
+  );
+
+  // Si es edición, buscamos el gasto existente
+  const gastoExistente = useAuthStore((s) =>
+    idGasto
+      ? s.groups.find(g => g.id === idGrupo)?.gastosDelGrupo.find(g => g.id === idGasto) ?? null
+      : null
+  );
 
   const [descripcion, setDescripcion] = useState('');
   const [monto,       setMonto]       = useState('');
   const [categoria,   setCategoria]   = useState<CategoriaComun | null>(null);
   const [fecha,       setFecha]       = useState(new Date().toISOString().split('T')[0]);
 
- // Agrega gastos a las dependencias y limpia cuando cierra
- /*
-useEffect(() => {
-  if (idGrupo && visible) {
-    const gastoExistente = gastos.find(g => g.id === idGrupo);
-    if (gastoExistente) {
-      setDescripcion(gastoExistente.descripcion);
-      setMonto(gastoExistente.monto.toLocaleString('es-CL'));
-      setCategoria(gastoExistente.categoria);
+  // Rellenar campos cuando abre en modo edición
+  useEffect(() => {
+    if (visible && modoEdicion && gastoExistente) {
+      setDescripcion(gastoExistente.descripcion ?? '');
+      setMonto(formatMonto(Number(gastoExistente.monto)));
+      setCategoria(gastoExistente.categoria ?? null);
       setFecha(gastoExistente.fecha ?? new Date().toISOString().split('T')[0]);
+    } else if (visible && !modoEdicion) {
+      // Limpiar en modo creación
+      setDescripcion('');
+      setMonto('');
+      setCategoria(null);
+      setFecha(new Date().toISOString().split('T')[0]);
     }
-  } else {
-    // Limpia los campos cuando es modo nuevo
-    setDescripcion('');
-    setMonto('');
-    setCategoria(null);
-    setFecha(new Date().toISOString().split('T')[0]);
-  }
-}, [idGrupo, visible, gastos]); // ← agrega gastos aquí*/
-
-
+  }, [visible, idGasto]);
 
   const montoNum = Number(monto.replace(/\./g, ''));
 
   const handleMonto = (raw: string) => {
-        const digits    = raw.replace(/\D/g, '');
-        const formatted = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-        setMonto(formatted);
-    };
+    const digits    = raw.replace(/\D/g, '');
+    const formatted = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    setMonto(formatted);
+  };
 
   const handleClose = () => {
     setDescripcion('');
@@ -107,16 +112,14 @@ useEffect(() => {
     onClose();
   };
 
-  const getNameById = async (userId: string) => {
+  const getNameById = async (userId: string): Promise<string> => {
     const result = await AsyncStorage.getItem("@registered_users");
     const registeredUsers: { user_id: string; name: string }[] = JSON.parse(result ?? '[]');
-
-    const user = registeredUsers.find(user => user.id === userId)
-    
-    return user.name
+    const found = registeredUsers.find(u => u.user_id === userId);
+    return found?.name ?? 'Desconocido';
   };
 
-  const handleGuardar = async() => {
+  const handleGuardar = async () => {
     const error = validate(descripcion, monto, categoria);
     if (error) {
       showMessage({ message: 'Campo inválido', description: error, type: 'warning', backgroundColor: '#f39c12' });
@@ -124,37 +127,49 @@ useEffect(() => {
     }
 
     const mesId = getMesActivoId();
-    
-   // Resolvemos todos los nombres antes de construir el objeto
-    const deudas = await Promise.all(
-      miembros.map(async (m: MiembroGrupo) => {
-        const nombre = await getNameById(m.userId);
-        return {
-          debe: (m.porcentaje ?? 0),
-          deudaMiembro: m.userId !== user?.id,
-          user_id: m.userId,
-          name: nombre,
-        };
-      })
-    );
 
-    const newGastoComun = {
-      id: generateGastoId(),
-      descripcion: descripcion,
-      categoria:  categoria,
-      monto: montoNum,
-      quienPago: user?.id,
-      fecha: mesId,
-      deuda: deudas,
-    };
-      // ✅ Modo edición — sintaxis correcta
-    addGastoComun(idGrupo, newGastoComun)
+    if (modoEdicion && gastoExistente) {
+      // ── Modo edición — conservar deudas existentes, solo actualizar campos ──
+      const gastoEditado: GastoComun = {
+        ...gastoExistente,
+        descripcion,
+        categoria,
+        monto: montoNum,
+        fecha: mesId,
+        // Las deudas y quienPago no cambian al editar
+      };
+      editGastoComun(idGrupo, gastoEditado);
+      showMessage({ message: '¡Gasto actualizado!', type: 'success', backgroundColor: '#34C759' });
+
+    } else {
+      // ── Modo creación — calcular deudas nuevas ──
+      const deudas = await Promise.all(
+        miembros.map(async (m: MiembroGrupo) => {
+          const nombre = await getNameById(m.userId);
+          return {
+            debe: m.porcentaje ?? 0,
+            deudaMiembro: m.userId !== user?.id,
+            user_id: m.userId,
+            name: nombre,
+          };
+        })
+      );
+
+      const newGastoComun: GastoComun = {
+        id: generateGastoId(),
+        descripcion,
+        categoria,
+        monto: montoNum,
+        quienPago: user?.id ?? null,
+        fecha: mesId,
+        deuda: deudas,
+      };
+      addGastoComun(idGrupo, newGastoComun);
       showMessage({ message: '¡Gasto agregado!', type: 'success', backgroundColor: '#34C759' });
-      handleClose();
     }
-   
-    // IVWR3K
- 
+
+    handleClose();
+  };
 
   const bg       = isDark ? '#1C1C1E' : '#FFFFFF';
   const inputBg  = isDark ? '#2C2C2E' : '#F5F7FA';
@@ -172,7 +187,7 @@ useEffect(() => {
 
               <RNView style={styles.header}>
                 <Text style={styles.titulo} lightColor="#1A1A1A" darkColor="#FFF">
-                  Añadir gasto común
+                  {modoEdicion ? 'Editar gasto' : 'Añadir gasto común'}
                 </Text>
                 <Pressable onPress={handleClose} hitSlop={12}>
                   <FontAwesome name="times" size={20} color={isDark ? '#AAA' : '#888'} />
@@ -191,8 +206,10 @@ useEffect(() => {
                         onPress={() => setCategoria(cat.value)}
                         style={[
                           styles.categoriaPill,
-                          { backgroundColor: activa ? '#007AFF' : isDark ? '#2C2C2E' : '#F0F4FF',
-                            borderColor: activa ? '#007AFF' : 'transparent' },
+                          {
+                            backgroundColor: activa ? '#007AFF' : isDark ? '#2C2C2E' : '#F0F4FF',
+                            borderColor: activa ? '#007AFF' : 'transparent',
+                          },
                         ]}
                       >
                         <FontAwesome name={cat.icon as any} size={13} color={activa ? '#FFF' : isDark ? '#AAA' : '#555'} />
@@ -239,6 +256,16 @@ useEffect(() => {
                   maxLength={10}
                 />
 
+                {/* Aviso en modo edición de que las deudas no cambian */}
+                {modoEdicion && (
+                  <RNView style={[styles.avisoEdicion, { backgroundColor: isDark ? '#2C2C2E' : '#FFF8E6' }]}>
+                    <FontAwesome name="info-circle" size={14} color="#FF9500" />
+                    <Text style={styles.avisoEdicionText} lightColor="#FF9500" darkColor="#FFB74D">
+                      Al editar solo se actualiza descripción, categoría y monto. Las deudas entre miembros se mantienen.
+                    </Text>
+                  </RNView>
+                )}
+
                 {categoria && monto ? (
                   <RNView style={[styles.resumen, { backgroundColor: isDark ? '#2C2C2E' : '#F0F7FF' }]}>
                     <FontAwesome name="check-circle" size={14} color="#007AFF" />
@@ -252,8 +279,8 @@ useEffect(() => {
                   style={({ pressed }) => [styles.btnGuardar, pressed && styles.btnPressed]}
                   onPress={handleGuardar}
                 >
-                  <FontAwesome name={idGrupo ? 'check' : 'plus'} size={16} color="#FFF" />
-                  <Text style={styles.btnText}>{idGrupo ? 'Actualizar gasto' : 'Guardar gasto'}</Text>
+                  <FontAwesome name={modoEdicion ? 'check' : 'plus'} size={16} color="#FFF" />
+                  <Text style={styles.btnText}>{modoEdicion ? 'Guardar cambios' : 'Guardar gasto'}</Text>
                 </Pressable>
 
                 <RNView style={{ height: 20 }} />
@@ -267,7 +294,7 @@ useEffect(() => {
 }
 
 const styles = StyleSheet.create({
-  overlay:       { flex: 1, justifyContent: 'flex-end' },
+  overlay:        { flex: 1, justifyContent: 'flex-end' },
   sheet: {
     borderTopLeftRadius: 24, borderTopRightRadius: 24,
     padding: 24, paddingBottom: 40, maxHeight: '90%',
@@ -276,19 +303,21 @@ const styles = StyleSheet.create({
       android: { elevation: 10 },
     }),
   },
-  handle:        { width: 40, height: 4, borderRadius: 2, backgroundColor: '#DDD', alignSelf: 'center', marginBottom: 20 },
-  header:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  titulo:        { fontSize: 20, fontWeight: '800' },
-  label:         { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginBottom: 8, marginTop: 16 },
-  categoriasRow: { gap: 8, paddingBottom: 4 },
-  categoriaPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5 },
-  categoriaLabel:{ fontSize: 13, fontWeight: '600' },
-  input:         { height: 52, borderRadius: 12, paddingHorizontal: 16, fontSize: 16, borderWidth: 1, borderColor: 'transparent' },
-  montoRow:      { flexDirection: 'row', borderRadius: 12, overflow: 'hidden' },
-  montoPrefix:   { width: 44, justifyContent: 'center', alignItems: 'center', borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
-  montoInput:    { height: 52, paddingHorizontal: 12, fontSize: 18, fontWeight: '700', borderTopRightRadius: 12, borderBottomRightRadius: 12 },
-  resumen:       { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 20, padding: 12, borderRadius: 10 },
-  resumenText:   { fontSize: 13, fontWeight: '600', flex: 1 },
+  handle:         { width: 40, height: 4, borderRadius: 2, backgroundColor: '#DDD', alignSelf: 'center', marginBottom: 20 },
+  header:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  titulo:         { fontSize: 20, fontWeight: '800' },
+  label:          { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginBottom: 8, marginTop: 16 },
+  categoriasRow:  { gap: 8, paddingBottom: 4 },
+  categoriaPill:  { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1.5 },
+  categoriaLabel: { fontSize: 13, fontWeight: '600' },
+  input:          { height: 52, borderRadius: 12, paddingHorizontal: 16, fontSize: 16, borderWidth: 1, borderColor: 'transparent' },
+  montoRow:       { flexDirection: 'row', borderRadius: 12, overflow: 'hidden' },
+  montoPrefix:    { width: 44, justifyContent: 'center', alignItems: 'center', borderTopLeftRadius: 12, borderBottomLeftRadius: 12 },
+  montoInput:     { height: 52, paddingHorizontal: 12, fontSize: 18, fontWeight: '700', borderTopRightRadius: 12, borderBottomRightRadius: 12 },
+  resumen:        { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 20, padding: 12, borderRadius: 10 },
+  resumenText:    { fontSize: 13, fontWeight: '600', flex: 1 },
+  avisoEdicion:   { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 16, padding: 12, borderRadius: 10 },
+  avisoEdicionText: { fontSize: 12, fontWeight: '500', flex: 1, lineHeight: 18 },
   btnGuardar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 10, backgroundColor: '#007AFF', height: 56, borderRadius: 16, marginTop: 24,
@@ -297,6 +326,6 @@ const styles = StyleSheet.create({
       android: { elevation: 5 },
     }),
   },
-  btnPressed:    { backgroundColor: '#005BBF', transform: [{ scale: 0.97 }] },
-  btnText:       { color: '#FFF', fontSize: 17, fontWeight: '800' },
+  btnPressed:     { backgroundColor: '#005BBF', transform: [{ scale: 0.97 }] },
+  btnText:        { color: '#FFF', fontSize: 17, fontWeight: '800' },
 });
