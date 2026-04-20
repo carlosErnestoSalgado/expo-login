@@ -41,9 +41,11 @@ interface GastoRowProps {
   miembrosMap: Record<string, string>;
   onEliminar: () => void;
   onEditar: () => void;
+  userId: string;        // 👈 nuevo
+  idGroup: string;       // 👈 nuevo
+  onSaldar: (gastoId: string, userId: string) => void;  // 👈 nuevo
 }
-
-function GastoRowExpandible({ gasto, isDark, miembrosMap, onEliminar, onEditar }: GastoRowProps) {
+function GastoRowExpandible({ gasto, isDark, miembrosMap, onEliminar, onEditar, userId, idGroup, onSaldar }: GastoRowProps) {
   const [expandido, setExpandido] = useState(false);
 
   const toggleExpand = () => {
@@ -118,52 +120,90 @@ function GastoRowExpandible({ gasto, isDark, miembrosMap, onEliminar, onEditar }
             </RNView>
           </RNView>
 
-          {deudas.length > 0 && (
-            <RNView style={styles.deudasSection}>
-              <Text style={[styles.expandLabel, { color: colors.label }]}>Deudas por miembro</Text>
-              {deudas.map((deuda) => {
-                const nombre = miembrosMap[deuda.user_id] ?? deuda.user_id;
-                const esPagador = deuda.user_id === gasto.quienPago;
-                const montoReal = Number(deuda.debe) * montoGasto;
-                return (
-                  <RNView
-                    key={deuda.user_id}
-                    style={[
-                      styles.deudaRow,
-                      { backgroundColor: colors.deudaBg, borderColor: colors.deudaBorder },
-                    ]}
-                  >
-                    <RNView style={styles.deudaLeft}>
-                      <RNView style={[styles.deudaAvatar, { backgroundColor: esPagador ? colors.pagadorBg : (isDark ? "#2C2C2E" : "#F2F2F7") }]}>
-                        <Text style={[styles.deudaAvatarText, { color: esPagador ? colors.pagadorText : colors.label }]}>
-                          {nombre.charAt(0).toUpperCase()}
-                        </Text>
-                      </RNView>
-                      <RNView>
-                        <Text style={[styles.deudaNombre, { color: colors.primary }]}>{nombre}</Text>
-                        {esPagador && (
-                          <Text style={[styles.deudaPagadorTag, { color: colors.pagadorText }]}>pagó</Text>
-                        )}
-                      </RNView>
-                    </RNView>
-                    <RNView style={styles.deudaRight}>
-                      {deuda.deudaMiembro ? (
-                        <Text style={[styles.deudaMonto, { color: "#FF453A" }]}>−{fmt(montoReal)}</Text>
-                      ) : (
-                        <Text style={[styles.deudaMonto, { color: colors.pagadorText }]}>+{fmt(montoReal)}</Text>
-                      )}
-                      {deuda.deudaMiembro && !esPagador && (
-                        <Text style={[styles.deudaOwesLabel, { color: colors.label }]}>
-                          a {pagadorNombre}
-                        </Text>
-                      )}
-                    </RNView>
-                  </RNView>
-                );
-              })}
-            </RNView>
-          )}
+          {deudas.map((deuda) => {
+  const nombre = miembrosMap[deuda.user_id] ?? deuda.user_id;
+  const esPagador = deuda.user_id === gasto.quienPago;
+  const montoReal = Number(deuda.debe) * montoGasto;
+  const esMiDeuda = deuda.user_id === userId && deuda.deudaMiembro;
 
+  return (
+    <RNView
+      key={deuda.user_id}
+      style={[
+        styles.deudaRow,
+        { backgroundColor: colors.deudaBg, borderColor: colors.deudaBorder },
+      ]}
+    >
+      <RNView style={styles.deudaLeft}>
+        <RNView style={[styles.deudaAvatar, { 
+          backgroundColor: deuda.deudaMiembro === false
+            ? (isDark ? '#0A3A1F' : '#E8F8EF')
+            : esPagador 
+              ? colors.pagadorBg 
+              : (isDark ? "#2C2C2E" : "#F2F2F7") 
+        }]}>
+          <Text style={[styles.deudaAvatarText, { 
+            color: deuda.deudaMiembro === false
+              ? (isDark ? '#30D158' : '#1A7F3C')
+              : esPagador ? colors.pagadorText : colors.label 
+          }]}>
+            {nombre.charAt(0).toUpperCase()}
+          </Text>
+        </RNView>
+        <RNView>
+          <Text style={[styles.deudaNombre, { color: colors.primary }]}>{nombre}</Text>
+          {esPagador && (
+            <Text style={[styles.deudaPagadorTag, { color: colors.pagadorText }]}>pagó</Text>
+          )}
+          {/* ── Badge saldado ── */}
+          {deuda.deudaMiembro === false && !esPagador && (
+            <Text style={styles.saldadoTag}>✓ saldado</Text>
+          )}
+        </RNView>
+      </RNView>
+
+      <RNView style={styles.deudaRight}>
+        {deuda.deudaMiembro ? (
+          <Text style={[styles.deudaMonto, { color: "#FF453A" }]}>−{fmt(montoReal)}</Text>
+        ) : (
+          <Text style={[styles.deudaMonto, { color: esPagador ? colors.pagadorText : "#30D158" }]}>
+            {esPagador ? '+' : '✓'}{fmt(montoReal)}
+          </Text>
+        )}
+        {deuda.deudaMiembro && !esPagador && (
+          <Text style={[styles.deudaOwesLabel, { color: colors.label }]}>
+            a {pagadorNombre}
+          </Text>
+        )}
+
+        {/* ── Botón saldar — solo para el usuario logueado y si debe ── */}
+        {esMiDeuda && (
+          <Pressable
+            style={({ pressed }) => [
+              styles.saldarBtn,
+              { opacity: pressed ? 0.7 : 1 }
+            ]}
+            onPress={() =>
+              Alert.alert(
+                "Saldar deuda",
+                `¿Confirmas que pagaste ${fmt(montoReal)} a ${pagadorNombre}?`,
+                [
+                  { text: "Cancelar", style: "cancel" },
+                  {
+                    text: "Sí, saldé",
+                    onPress: () => onSaldar(gasto.id, userId),
+                  },
+                ]
+              )
+            }
+          >
+            <Text style={styles.saldarBtnText}>Saldar</Text>
+          </Pressable>
+        )}
+      </RNView>
+    </RNView>
+  );
+})}
           <RNView style={styles.accionesRow}>
             <Pressable
               style={({ pressed }) => [
@@ -208,6 +248,9 @@ export default function GastosScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const user = useAuthStore((s) => s.user);
+
+  const saldarDeuda = useAuthStore((s) => s.saldarDeuda);
+  const saldarTodasDeudas = useAuthStore((s) => s.saldarTodasDeudas);
 
   const group = useAuthStore((s) => s.groups.find((g) => g.id === idGroup) ?? null);
   const deleteGastoComun = useAuthStore((s) => s.deleteGastoComun);
@@ -304,15 +347,27 @@ export default function GastosScreen() {
         ) : (
           <RNView style={styles.gastosList}>
             {gastosComunes.map((gasto) => (
-              <GastoRowExpandible
-                key={gasto.id}
-                gasto={gasto}
-                isDark={isDark}
-                miembrosMap={miembrosMap}
-                onEliminar={() => deleteGastoComun(idGroup, gasto.id)}
-                onEditar={() => Alert.alert("Editar", `Editar "${gasto.descripcion}"`)}
-              />
-            ))}
+            <GastoRowExpandible
+              key={gasto.id}
+              gasto={gasto}
+              isDark={isDark}
+              miembrosMap={miembrosMap}
+              userId={user?.id ?? ''}          // 👈
+              idGroup={idGroup}                // 👈
+              onSaldar={(gastoId, uid) =>      // 👈
+                Alert.alert(
+                  "Saldar deuda",
+                  `¿Confirmas el pago?`,
+                  [
+                    { text: "Cancelar", style: "cancel" },
+                    { text: "Sí, saldé", onPress: () => saldarDeuda(idGroup, gastoId, uid) },
+                  ]
+                )
+              }
+              onEliminar={() => deleteGastoComun(idGroup, gasto.id)}
+              onEditar={() => Alert.alert("Editar", `Editar "${gasto.descripcion}"`)}
+            />
+          ))}
           </RNView>
         )}
 
@@ -339,24 +394,52 @@ export default function GastosScreen() {
             )}
 
             {/* Debes */}
-            {yoDebItems.length > 0 && (
-              <RNView style={[
-                styles.footerSection,
-                meDebenItems.length > 0 && { borderTopWidth: 0.5, borderTopColor: isDark ? "#2C2C2E" : "#F0F0F0", paddingTop: 12 }
-              ]}>
-                <RNView style={styles.footerSectionHeader}>
-                  <RNView style={[styles.footerDot, { backgroundColor: "#FF453A" }]} />
-                  <Text style={[styles.footerSectionTitle, { color: "#FF453A" }]}>Debes</Text>
-                  <Text style={[styles.footerSectionTotal, { color: "#FF453A" }]}>−{fmt(totalYoDebo)}</Text>
-                </RNView>
-                {yoDebItems.map((item, i) => (
-                  <RNView key={i} style={styles.footerRow}>
-                    <Text style={[styles.footerRowNombre, { color: isDark ? "#EBEBF5" : "#3C3C43" }]}>a {item.nombre}</Text>
-                    <Text style={[styles.footerRowMonto, { color: "#FF453A" }]}>−{fmt(item.monto)}</Text>
-                  </RNView>
-                ))}
-              </RNView>
-            )}
+           {yoDebItems.length > 0 && (
+  <RNView style={[
+    styles.footerSection,
+    meDebenItems.length > 0 && { borderTopWidth: 0.5, borderTopColor: isDark ? "#2C2C2E" : "#F0F0F0", paddingTop: 12 }
+  ]}>
+    <RNView style={styles.footerSectionHeader}>
+      <RNView style={[styles.footerDot, { backgroundColor: "#FF453A" }]} />
+      <Text style={[styles.footerSectionTitle, { color: "#FF453A" }]}>Debes</Text>
+      <Text style={[styles.footerSectionTotal, { color: "#FF453A" }]}>−{fmt(totalYoDebo)}</Text>
+    </RNView>
+
+    {yoDebItems.map((item, i) => (
+      <RNView key={i} style={styles.footerRow}>
+        <Text style={[styles.footerRowNombre, { color: isDark ? "#EBEBF5" : "#3C3C43" }]}>a {item.nombre}</Text>
+        <Text style={[styles.footerRowMonto, { color: "#FF453A" }]}>−{fmt(item.monto)}</Text>
+      </RNView>
+    ))}
+
+    {/* ── Botón saldar todo ── */}
+    <Pressable
+      style={({ pressed }) => [
+        styles.saldarTodoBtn,
+        { 
+          backgroundColor: isDark ? '#0A3A1F' : '#E8F8EF',
+          opacity: pressed ? 0.7 : 1 
+        }
+      ]}
+      onPress={() =>
+        Alert.alert(
+          "Saldar todas las deudas",
+          `¿Confirmas que pagaste ${fmt(totalYoDebo)} en total?`,
+          [
+            { text: "Cancelar", style: "cancel" },
+            {
+              text: "Sí, saldé todo",
+              onPress: () => saldarTodasDeudas(idGroup, user!.id),
+            },
+          ]
+        )
+      }
+    >
+      <FontAwesome name="check-circle" size={14} color="#30D158" />
+      <Text style={styles.saldarTodoBtnText}>Saldar todas mis deudas · {fmt(totalYoDebo)}</Text>
+    </Pressable>
+  </RNView>
+)}
 
             {/* Balance neto — solo si hay ambos */}
             {meDebenItems.length > 0 && yoDebItems.length > 0 && (
@@ -475,4 +558,36 @@ const styles = StyleSheet.create({
   },
   footerBalanceLabel: { fontSize: 13, fontWeight: "600" },
   footerBalanceValue: { fontSize: 18, fontWeight: "800" },
+  saldadoTag: {
+  fontSize: 10,
+  fontWeight: '700',
+  color: '#30D158',
+  letterSpacing: 0.3,
+},
+saldarBtn: {
+  marginTop: 6,
+  paddingHorizontal: 10,
+  paddingVertical: 4,
+  borderRadius: 8,
+  backgroundColor: '#30D15820',
+},
+saldarBtnText: {
+  fontSize: 11,
+  fontWeight: '700',
+  color: '#30D158',
+},
+saldarTodoBtn: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 8,
+  marginTop: 8,
+  paddingVertical: 12,
+  borderRadius: 12,
+},
+saldarTodoBtnText: {
+  fontSize: 13,
+  fontWeight: '700',
+  color: '#30D158',
+},
 });

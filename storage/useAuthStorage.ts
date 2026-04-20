@@ -132,6 +132,8 @@ interface AuthState {
 
   // Para porcentaje en grupo
   updatePorcentajeMember: (codigoUnirse: string, totalIncomes: number) => void;
+  saldarDeuda: (grupoId: string, gastoId: string, userId: string) => void;            
+  saldarTodasDeudas: (grupoId: string, userId: string) => void; 
   
 }
 
@@ -423,6 +425,37 @@ exitOfGroup: (groupId: string) => set((state) => ({
   )
 })),
 
+saldarDeuda: (grupoId, gastoId, userId) => set((state) => ({
+  groups: state.groups.map(g =>
+    g.id !== grupoId ? g : {
+      ...g,
+      gastosDelGrupo: g.gastosDelGrupo.map(gasto =>
+        gasto.id !== gastoId ? gasto : {
+          ...gasto,
+          deuda: (gasto.deuda ?? []).map(deuda =>
+            deuda.user_id !== userId ? deuda : {
+              ...deuda,
+              deudaMiembro: false  // 👈 marca como saldada
+            }
+          )
+        }
+      )
+    }
+  )
+})),
+saldarTodasDeudas: (grupoId, userId) => set((state) => ({
+  groups: state.groups.map(g =>
+    g.id !== grupoId ? g : {
+      ...g,
+      gastosDelGrupo: g.gastosDelGrupo.map(gasto => ({
+        ...gasto,
+        deuda: (gasto.deuda ?? []).map(deuda =>
+          deuda.user_id === userId ? { ...deuda, deudaMiembro: false } : deuda
+        )
+      }))
+    }
+  )
+})),
 deleteGroupById: (groupId: string) => set((s) => ({
   groups: s.groups.filter(g =>
     g.id !== groupId
