@@ -269,7 +269,7 @@ export const useAuthStore = create<AuthState>()(
   groups: state.groups.map(g =>
     g.id !== grupoId ? g : {
       ...g,
-      gastosDelGrupo: [...g.gastosDelGrupo, gasto],
+      gastosDelGrupo: [...(g.gastosDelGrupo ?? []), gasto],
     }
   ),
 })),

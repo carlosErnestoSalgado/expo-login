@@ -6,7 +6,6 @@ import {
 import { useAuthStore } from '@/storage/useAuthStorage';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Text } from '@/components/Themed';
-import ModalGastoPersonal from '@/components/ModalPersonal';
 import { useRouter } from 'expo-router';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,6 +13,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Card from '@/components/card';
 import SectionTitle from '@/components/sectiontitle';
 import StatRow from '@/components/statrow';
+import GoalsList from '@/components/GoalsList';
+
+// Modales
+import ModalGastoPersonal from '@/components/ModalPersonal';
+import ModalCrearEditGoal from '@/components/ModalCrearEditGoal';
 
 const fmt = (n: number) =>
   Math.round(n).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
@@ -28,12 +32,15 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
 
   const [modalVisible, setModalVisible] = useState(false);
+  const [modalGoalVisible, setModalGoalVisible] = useState(false);
+
 
   // ── Selectores atómicos — cada uno retorna un valor primitivo o referencia estable ──
   const user = useAuthStore((s) => s.user);
   const allGroups = useAuthStore((s) => s.groups);
   const gastosPersonales = useAuthStore((s) => s.user?.gastosPersonales ?? []);
   const saldarTodasDeudas = useAuthStore((s) => s.saldarTodasDeudas);
+  const addGoal = useAuthStore((s) => s.addGoal);
 
   const userId = user?.id ?? '';
   const salario = user?.salario ?? 0;
@@ -136,6 +143,14 @@ const saldo = salario
     label: isDark ? '#8E8E93' : '#8E8E93',
     border: isDark ? '#2C2C2E' : '#EFEFEF',
   };
+
+  function setSelectedGoal(goal: Goal) {
+    throw new Error('Function not implemented.');
+  }
+
+  function deleteGoal(id: string) {
+    throw new Error('Function not implemented.');
+  }
 
   return (
     <ScrollView
@@ -278,6 +293,31 @@ const saldo = salario
           </RNView>
         </>
       )}
+      <SectionTitle text="Mis Goals" />
+          <RNView style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <GoalsList
+              goals={user?.goals}
+              fmt={fmt}
+              onCreateGoal={() => setModalGoalVisible(true)}
+              onEditGoal={(goal) => {
+                setSelectedGoal(goal);
+                setModalGoalVisible(true);
+              }}
+              onDeleteGoal={(goal) => {
+                Alert.alert('Eliminar meta', `¿Eliminar "${goal.objetivo}"?`, [
+                  { text: 'Cancelar', style: 'cancel' },
+                  { text: 'Eliminar', style: 'destructive', onPress: () => deleteGoal(goal.id) },
+                ]);
+              }}
+            />
+            <Pressable
+              style={({ pressed }) => [styles.ctaBtn, pressed && styles.ctaPressed]}
+              onPress={() => setModalGoalVisible(true)}
+            >
+              <FontAwesome name="plus" size={14} color={colors.primary} />           
+              <Text style={{ padding: 14, color: colors.primary, fontWeight: '600' }}>{user?.goals ? 'Crea nueva meta' : 'Crear tu primera meta'}</Text>
+            </Pressable>
+          </RNView>
 
       {/* ── Mis grupos ────────────────────────────────────────────────────── */}
       {groups.length > 0 && (
@@ -338,6 +378,11 @@ const saldo = salario
       <ModalGastoPersonal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
+      />
+      <ModalCrearEditGoal
+        visible={modalGoalVisible}
+        onClose={() => setModalGoalVisible(false)}
+        onSave={(goal) => addGoal(goal)}
       />
     </ScrollView>
   );
