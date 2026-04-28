@@ -136,6 +136,7 @@ interface AuthState {
   saldarTodasDeudas: (grupoId: string, userId: string) => void; 
   editGastoComun: (grupoId: string, gastoEditado: GastoComun) => void;
   
+  updateUser: (data: Partial<User>) => void;
 }
 
 // ─── HELPERS INTERNOS ──────────────────────────────────────────────────────────
@@ -172,6 +173,10 @@ export const useAuthStore = create<AuthState>()(
   setIsLogged: (status) => set({ isLogged: status }),
   logout: () => set({ user: null, isLogged: false, groups: [], mesActivoId: null }),
 
+  updateUser: (data) => set((state) => ({
+    user: state.user ? { ...state.user, ...data } : null,
+  })),
+  
   // ── Goals individuales ──
   addGoal: (newGoal) => set((state) => ({
     user: state.user

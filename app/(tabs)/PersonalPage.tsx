@@ -18,6 +18,7 @@ import GoalsList from '@/components/GoalsList';
 // Modales
 import ModalGastoPersonal from '@/components/ModalPersonal';
 import ModalCrearEditGoal from '@/components/ModalCrearEditGoal';
+import  ModalEditPersonalData from '@/components/ModalEditPersonalData'
 
 const fmt = (n: number) =>
   Math.round(n).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
@@ -31,8 +32,10 @@ export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
+  // Modales
   const [modalVisible, setModalVisible] = useState(false);
   const [modalGoalVisible, setModalGoalVisible] = useState(false);
+  const [modalEditPersonalData, setModalEditPersonalData] = useState(false);
 
 
   // ── Selectores atómicos — cada uno retorna un valor primitivo o referencia estable ──
@@ -159,21 +162,25 @@ const saldo = salario
       showsVerticalScrollIndicator={false}
     >
       {/* ── Avatar ────────────────────────────────────────────────────────── */}
-      <RNView style={styles.header}>
-        {user?.foto ? (
-          <Image source={{ uri: user.foto }} style={styles.avatar} />
-        ) : (
-          <RNView style={styles.avatarFallback}>
-            <Text style={styles.avatarText}>{iniciales}</Text>
-          </RNView>
-        )}
-        <Text style={styles.userName} lightColor="#1A1A1A" darkColor="#FFF">
-          {user?.name ?? 'Usuario'}
-        </Text>
-        <Text style={styles.userEmail} lightColor="#888" darkColor="#666">
-          {user?.email ?? ''}
-        </Text>
-      </RNView>
+      <Pressable
+      onPress={() => setModalEditPersonalData(true)}
+      >
+        <RNView style={styles.header}>
+          {user?.foto ? (
+            <Image source={{ uri: user.foto }} style={styles.avatar} />
+          ) : (
+            <RNView style={styles.avatarFallback}>
+              <Text style={styles.avatarText}>{iniciales}</Text>
+            </RNView>
+          )}
+          <Text style={styles.userName} lightColor="#1A1A1A" darkColor="#FFF">
+            {user?.name ?? 'Usuario'}
+          </Text>
+          <Text style={styles.userEmail} lightColor="#888" darkColor="#666">
+            {user?.email ?? ''}
+          </Text>
+        </RNView>
+      </Pressable>
 
       {/* ── Resumen financiero ────────────────────────────────────────────── */}
       <SectionTitle text="Resumen del mes" />
@@ -383,6 +390,11 @@ const saldo = salario
         visible={modalGoalVisible}
         onClose={() => setModalGoalVisible(false)}
         onSave={(goal) => addGoal(goal)}
+      />
+      <ModalEditPersonalData 
+        visible={modalEditPersonalData}
+        onClose={() => setModalEditPersonalData(false)}
+        
       />
     </ScrollView>
   );
