@@ -37,6 +37,7 @@ export default function ProfileScreen() {
   const [modalGoalVisible, setModalGoalVisible] = useState(false);
   const [modalEditPersonalData, setModalEditPersonalData] = useState(false);
 
+  const [editGoal, setEditGoal] = useState('');
 
   // ── Selectores atómicos — cada uno retorna un valor primitivo o referencia estable ──
   const user = useAuthStore((s) => s.user);
@@ -44,6 +45,7 @@ export default function ProfileScreen() {
   const gastosPersonales = useAuthStore((s) => s.user?.gastosPersonales ?? []);
   const saldarTodasDeudas = useAuthStore((s) => s.saldarTodasDeudas);
   const addGoal = useAuthStore((s) => s.addGoal);
+  const deleteGoal = useAuthStore((s) => s.deleteGoal)
 
   const userId = user?.id ?? '';
   const salario = user?.salario ?? 0;
@@ -147,13 +149,7 @@ const saldo = salario
     border: isDark ? '#2C2C2E' : '#EFEFEF',
   };
 
-  function setSelectedGoal(goal: Goal) {
-    throw new Error('Function not implemented.');
-  }
 
-  function deleteGoal(id: string) {
-    throw new Error('Function not implemented.');
-  }
 
   return (
     <ScrollView
@@ -185,43 +181,43 @@ const saldo = salario
       {/* ── Resumen financiero ────────────────────────────────────────────── */}
       <SectionTitle text="Resumen del mes" />
       <Card>
-  <StatRow label="Salario mensual" value={fmt(salario)} />
-  <RNView style={styles.divider} />
-  <StatRow label="Gastos personales" value={fmt(totalGastadoPersonal)} valueColor="#FF9500" />
-  {totalPagadoPorMi > 0 && (
-    <>
+      <StatRow label="Salario mensual" value={fmt(salario)} />
       <RNView style={styles.divider} />
-      <StatRow label="Pagado por el grupo" value={fmt(totalPagadoPorMi)} valueColor="#FF9500" />
-    </>
-  )}
-  {totalReembolsado > 0 && (
-    <>
-      <RNView style={styles.divider} />
-      <StatRow label="Reembolsado" value={fmt(totalReembolsado)} valueColor="#30D158" />
-    </>
-  )}
-  <RNView style={styles.divider} />
-  <StatRow
-    label="Saldo actual"
-    value={fmt(salario - totalGastadoPersonal - totalPagadoPorMi + totalReembolsado)}
-    valueColor="#007AFF"
-  />
-  {totalYoDebEnGrupos > 0 && (
-    <>
-      <RNView style={styles.divider} />
-      <StatRow label="⚠ Comprometido (debes)" value={fmt(totalYoDebEnGrupos)} valueColor="#FF453A" />
+      <StatRow label="Gastos personales" value={fmt(totalGastadoPersonal)} valueColor="#FF9500" />
+      {totalPagadoPorMi > 0 && (
+        <>
+          <RNView style={styles.divider} />
+          <StatRow label="Pagado por el grupo" value={fmt(totalPagadoPorMi)} valueColor="#FF9500" />
+        </>)
+      }
+      {totalReembolsado > 0 && (
+        <>
+          <RNView style={styles.divider} />
+          <StatRow label="Reembolsado" value={fmt(totalReembolsado)} valueColor="#30D158" />
+        </>)
+      }
       <RNView style={styles.divider} />
       <StatRow
-        label="Disponible real"
-        value={fmt(salario - totalGastadoPersonal - totalPagadoPorMi + totalReembolsado - totalYoDebEnGrupos)}
-        valueColor={
-          salario - totalGastadoPersonal - totalPagadoPorMi + totalReembolsado - totalYoDebEnGrupos >= 0
-            ? '#34C759' : '#FF3B30'
-        }
+        label="Saldo actual"
+        value={fmt(salario - totalGastadoPersonal - totalPagadoPorMi + totalReembolsado)}
+        valueColor="#007AFF"
       />
-    </>
-  )}
-</Card>
+      {totalYoDebEnGrupos > 0 && (
+        <>
+          <RNView style={styles.divider} />
+          <StatRow label="⚠ Comprometido (debes)" value={fmt(totalYoDebEnGrupos)} valueColor="#FF453A" />
+          <RNView style={styles.divider} />
+          <StatRow
+            label="Disponible real"
+            value={fmt(salario - totalGastadoPersonal - totalPagadoPorMi + totalReembolsado - totalYoDebEnGrupos)}
+            valueColor={
+              salario - totalGastadoPersonal - totalPagadoPorMi + totalReembolsado - totalYoDebEnGrupos >= 0
+                ? '#34C759' : '#FF3B30'
+            }
+          />
+        </>)
+      }
+      </Card>
 
       {/* ── Desglose por grupo ────────────────────────────────────────────── */}
       {gastosPorGrupo.length > 0 && (
@@ -300,6 +296,7 @@ const saldo = salario
           </RNView>
         </>
       )}
+      
       <SectionTitle text="Mis Goals" />
           <RNView style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <GoalsList
@@ -307,7 +304,7 @@ const saldo = salario
               fmt={fmt}
               onCreateGoal={() => setModalGoalVisible(true)}
               onEditGoal={(goal) => {
-                setSelectedGoal(goal);
+                setEditGoal(goal);
                 setModalGoalVisible(true);
               }}
               onDeleteGoal={(goal) => {
@@ -319,7 +316,9 @@ const saldo = salario
             />
             <Pressable
               style={({ pressed }) => [styles.ctaBtn, pressed && styles.ctaPressed]}
-              onPress={() => setModalGoalVisible(true)}
+              onPress={() => {
+                setEditGoal('')
+                setModalGoalVisible(true)}}
             >
               <FontAwesome name="plus" size={14} color={colors.primary} />           
               <Text style={{ padding: 14, color: colors.primary, fontWeight: '600' }}>{user?.goals ? 'Crea nueva meta' : 'Crear tu primera meta'}</Text>
@@ -390,6 +389,7 @@ const saldo = salario
         visible={modalGoalVisible}
         onClose={() => setModalGoalVisible(false)}
         onSave={(goal) => addGoal(goal)}
+        goalToEdit={editGoal ? editGoal : null}
       />
       <ModalEditPersonalData 
         visible={modalEditPersonalData}

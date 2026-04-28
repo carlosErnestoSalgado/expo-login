@@ -1,15 +1,15 @@
+import { FontAwesome } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
   LayoutAnimation,
   Platform,
+  Pressable,
+  StyleSheet,
+  Text,
   UIManager,
   useColorScheme,
+  View,
 } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
 
 // Habilita LayoutAnimation en Android
 if (Platform.OS === 'android') {
@@ -96,6 +96,21 @@ const GoalRow: React.FC<GoalRowProps> = ({ goal, colors, fmt, onEdit, onDelete, 
           hitSlop={6}
         >
           <FontAwesome name="trash" size={13} color={colors.danger ?? '#EF4444'} />
+        </Pressable>
+        <Pressable
+        
+          onPress={() => alert('Marcar como completada')}
+          style={({ pressed }) => [
+            rowStyles.actionBtn,
+            {
+              backgroundColor: colors.primary + '18',
+              borderColor: colors.primary + '40',
+            },
+            pressed && { opacity: 0.6, transform: [{ scale: 0.92 }] },
+          ]}
+          hitSlop={6}
+        > 
+          <FontAwesome name="check" size={12} color={colors.label} />
         </Pressable>
       </View>
     </View>

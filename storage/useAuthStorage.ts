@@ -137,6 +137,8 @@ interface AuthState {
   editGastoComun: (grupoId: string, gastoEditado: GastoComun) => void;
   
   updateUser: (data: Partial<User>) => void;
+  updateGoal: (data: Partial<Goal>) => void;
+  deleteGoal: (goalId: string) => void;
 }
 
 // ─── HELPERS INTERNOS ──────────────────────────────────────────────────────────
@@ -176,6 +178,14 @@ export const useAuthStore = create<AuthState>()(
   updateUser: (data) => set((state) => ({
     user: state.user ? { ...state.user, ...data } : null,
   })),
+  updateGoal: (data) => set((state) => ({
+     user: {
+    ...state.user,
+    goals: state.user.goals
+      ? state.user.goals.map((goal) => goal.id === data.id ? { ...goal, ...data } : goal)
+      : null
+    }
+  })),
   
   // ── Goals individuales ──
   addGoal: (newGoal) => set((state) => ({
@@ -192,7 +202,12 @@ export const useAuthStore = create<AuthState>()(
       ),
     } : null,
   })),
-
+  deleteGoal: (goalId) => set((state) => ({
+  user: state.user ? {
+    ...state.user,
+    goals: state.user.goals.filter((goal) => goal.id !== goalId)
+  } : state.user  // ← return existing value instead of undefined
+})),
   // ── Grupos ──
   setGroups: (groups) => set({ groups }),
 

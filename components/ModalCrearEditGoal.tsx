@@ -28,16 +28,13 @@ export interface Goal {
 
 export default function ModalCrearEditGoal ({  visible, onClose, onSave, goalToEdit}: ModalCrearEditGoalProps){
 
+    const updateGoal = useAuthStore((s) => s.updateGoal)
+
     // Capmpos de los inputs
     const [objetivo, setObjetivo] = useState("");
     const [montoMeta, setMontoMeta] = useState(0);
-   
-
-
     const isDark = useColorScheme() === 'dark';
-
-    
-
+  
     useEffect(() => {
         if (goalToEdit) {
             setObjetivo(goalToEdit.objetivo);
@@ -49,14 +46,29 @@ export default function ModalCrearEditGoal ({  visible, onClose, onSave, goalToE
     }, [goalToEdit, visible]);
 
     const handleCrear = async() => {
-        const newGoal: Goal = {
-            id: goalToEdit ? goalToEdit.id : Date.now().toString(),
+          if (goalToEdit){
+          const goalEdited = {
+            ...goalToEdit,
+            id: goalToEdit.id,
             objetivo: objetivo.trim(),
-            montoMeta: montoMeta,
-            montoActual: goalToEdit ? goalToEdit.montoActual : 0,
-        };
-        onSave(newGoal);
-        onClose();
+            montoMeta: montoMeta
+          };
+          updateGoal(goalEdited);
+          onClose();
+        }else{
+          const newGoal: Goal = {
+              id: goalToEdit ? goalToEdit.id : Date.now().toString(),
+              objetivo: objetivo.trim(),
+              montoMeta: montoMeta,
+              montoActual: goalToEdit ? goalToEdit.montoActual : 0,
+          };
+          
+          
+          onSave(newGoal);
+          onClose();
+
+        }
+      
     };
 
 
